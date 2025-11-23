@@ -133,3 +133,26 @@ def update_seat(req: SeatUpdateRequest,db: Session = Depends(get_db)):
     r.delete(lock_key)
 
     return {"ok": True, "message": "Seats confirmed and lock released"}
+
+@router.get("/internal/get/route/trip/{trip_id}", response_model=TripResponse)
+def get_trip_details(trip_id: str, db: Session = Depends(get_db)):
+    sql = text("SELECT * FROM trips WHERE trip_id = :trip_id")
+    row = db.execute(sql,{"trip_id": trip_id}).mappings().first()
+
+    if not row:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Trip not found")
+
+    trip_dict = dict(row)
+    locked_keys = r.keys(f"lock:{trip_id}:*")
+    total_locked = 0
+    for key in locked_keys:
+        data = r.get(key)
+        if data:
+            try:
+                lock_data = json.loads(data)
+                total_locked += lock_data.get("seats",0)
+            except Exception:
+                pass
+    
+    trip_dict["remaining_seats"] -= total_locked
+    return trip_dict

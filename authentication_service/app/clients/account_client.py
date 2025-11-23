@@ -15,14 +15,14 @@ class AccountClient:
         """
         payload = {"username": username, "password_hash": password_hash}
         # Endpoint path is a suggestion; adjust to match account service.
-        resp = self._client.post("/internal/accounts/verify", json=payload)
+        resp = self._client.post("/internal/post/accounts/login", json=payload)
         return resp.json()
 
     def get_account(self, user_id: str, *, authorization: Optional[str] = None, token: Optional[str] = None) -> Dict[str, Any]:
-        headers: Dict[str, str] | None = None
+        headers: Dict[str, str] | {"X-User-Id": user_id}
         if authorization:
             headers = {"Authorization": authorization}
         elif token:
             headers = {"Authorization": f"Bearer {token}"}
-        resp = self._client.get(f"/internal/accounts/{user_id}", headers=headers)
+        resp = self._client.get("/internal/get/account/me", headers=headers)
         return resp.json()
