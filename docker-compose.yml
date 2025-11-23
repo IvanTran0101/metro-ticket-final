@@ -1,15 +1,4 @@
 services:
-  rabbitmq:
-    image: rabbitmq:3.12-management
-    healthcheck:
-      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
-      interval: 5s
-      timeout: 3s
-      retries: 10
-    ports:
-      - "5672:5672"
-      - "15672:15672"
-
   postgres_account:
     image: postgres:15
     environment:
@@ -44,22 +33,22 @@ services:
       - pgdata_payment:/var/lib/postgresql/data
       - ./payment_service/db/migrations:/docker-entrypoint-initdb.d
 
-  postgres_tuition:
+  postgres_booking:
     image: postgres:15
     environment:
-      POSTGRES_USER: tuition_user
-      POSTGRES_PASSWORD: tuition_pass
-      POSTGRES_DB: tuition_db
+      POSTGRES_USER: booking_user
+      POSTGRES_PASSWORD: booking_pass
+      POSTGRES_DB: booking_db
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U tuition_user -d tuition_db"]
+      test: ["CMD-SHELL", "pg_isready -U booking_user -d booking_db"]
       interval: 5s
       timeout: 3s
       retries: 10
     ports:
       - "5434:5432"
     volumes:
-      - pgdata_tuition:/var/lib/postgresql/data
-      - ./tuition_service/db/migrations:/docker-entrypoint-initdb.d
+      - pgdata_booking:/var/lib/postgresql/data
+      - ./booking_service/db/migrations:/docker-entrypoint-initdb.d
 
   account_service:
     build:
@@ -69,29 +58,15 @@ services:
       SERVICE_HOST: "0.0.0.0"
       SERVICE_PORT: "8080"
       ACCOUNT_DATABASE_URL: "postgresql+psycopg2://account_user:account_pass@postgres_account:5432/account_db"
-      RABBIT_URL: "amqp://guest:guest@rabbitmq:5672/%2f"
-      EVENT_EXCHANGE: "ibanking.events"
-      EVENT_DLX: "ibanking.dlx"
-      ACCOUNT_PAYMENT_QUEUE: "account.payment.q"
-      CONSUMER_PREFETCH: "32"
-      RK_PAYMENT_INITIATED: "payment.v1.initiated"
-      RK_PAYMENT_AUTHORIZED: "payment.v1.authorized"
-      RK_PAYMENT_UNAUTHORIZED: "payment.v1.unauthorized"
-      RK_BALANCE_HELD: "account.v1.balance_held"
-      RK_BALANCE_HOLD_FAILED: "account.v1.balance_hold_failed"
-      RK_BALANCE_UPDATED: "account.v1.balance_updated"
-      RK_BALANCE_RELEASED: "account.v1.balance_released"
       HOLD_EXPIRES_MIN: "15"
       REDIS_URL: "redis://redis:6379/0"
     depends_on:
-      rabbitmq:
-        condition: service_healthy
       postgres_account:
         condition: service_healthy
       redis:
         condition: service_healthy
     ports:
-      - "8081:8080"
+    - "8081:8080"
 
   authentication_service:
     build:
@@ -107,123 +82,67 @@ services:
       account_service:
         condition: service_started
     ports:
-      - "8082:8080"
+    - "8082:8080"
 
   payment_service:
     build:
       context: .
       dockerfile: payment_service/Dockerfile
     environment:
-      RABBIT_URL: "amqp://guest:guest@rabbitmq:5672/%2f"
-      EVENT_EXCHANGE: "ibanking.events"
-      EVENT_DLX: "ibanking.dlx"
       PAYMENT_DATABASE_URL: "postgresql+psycopg2://payment_user:payment_pass@postgres_payment:5432/payment_db"
-      RK_TUITION_LOCK: "tuition.v1.tuition_lock"
-      RK_TUITION_LOCK_FAILED: "tuition.v1.tuition_lock_failed"
-      RK_TUITION_UPDATED: "tuition.v1.tuition_updated"
-      RK_TUITION_UNLOCKED: "tuition.v1.tuition_unlocked"
-    
-      RK_BALANCE_HELD: "account.v1.balance_held"
-      RK_BALANCE_HOLD_FAILED: "account.v1.balance_hold_failed"
-      RK_BALANCE_UPDATED: "account.v1.balance_updated"
-      RK_BALANCE_RELEASED: "account.v1.balance_released"
-    
-      RK_OTP_GENERATED: "otp.v1.generated"
-      RK_OTP_SUCCEED: "otp.v1.succeed"
-      RK_OTP_EXPIRED: "otp.v1.expired"
-    
-    # Routing keys (publish)
-      RK_PAYMENT_INITIATED: "payment.v1.initiated"
-      RK_PAYMENT_PROCESSING: "payment.v1.processing"
-      RK_PAYMENT_AUTHORIZED: "payment.v1.authorized"
-      RK_PAYMENT_COMPLETED:  "payment.v1.completed"
-      RK_PAYMENT_CANCELED:   "payment.v1.canceled"
-      RK_PAYMENT_UNAUTHORIZED: "payment.v1.unauthorized"
       REDIS_URL: "redis://redis:6379/0"
     depends_on:
-      rabbitmq:
-        condition: service_healthy
       postgres_payment:
         condition: service_healthy
       redis:
         condition: service_healthy
     ports:
-      - "8083:8080"
+    - "8083:8080"
 
-  tuition_service:
+  booking_service:
     build:
       context: .
-      dockerfile: tuition_service/Dockerfile
+      dockerfile: bookingn_service/Dockerfile
     environment:
-      RABBIT_URL: "amqp://guest:guest@rabbitmq:5672/%2f"
-      EVENT_EXCHANGE: "ibanking.events"
-      EVENT_DLX: "ibanking.dlx"
-      TUITION_DATABASE_URL: "postgresql+psycopg2://tuition_user:tuition_pass@postgres_tuition:5432/tuition_db"
-      TUITION_PAYMENT_QUEUE: "tuition.payment.q"
-      CONSUMER_PREFETCH: "32"
-      RK_PAYMENT_INITIATED: "payment.v1.initiated"
-      RK_PAYMENT_AUTHORIZED: "payment.v1.authorized"
-      RK_PAYMENT_UNAUTHORIZED: "payment.v1.unauthorized"
-      RK_TUITION_LOCK: "tuition.v1.tuition_lock"
-      RK_TUITION_LOCK_FAILED: "tuition.v1.tuition_lock_failed"
-      RK_TUITION_UPDATED: "tuition.v1.tuition_updated"
-      RK_TUITION_UNLOCKED: "tuition.v1.tuition_unlocked"
+      BOOKING_DATABASE_URL: "postgresql+psycopg2://booking_user:booking_pass@postgres_booking:5432/booking_db"
       HOLD_EXPIRES_MIN: "15"
     depends_on:
-      rabbitmq:
-        condition: service_healthy
-      postgres_tuition:
+      postgres_booking:
         condition: service_healthy
     ports:
-      - "8084:8080"
+    - "8084:8080"
 
   otp_service:
     build:
       context: .
       dockerfile: otp_service/Dockerfile
     environment:
-      RABBIT_URL: "amqp://guest:guest@rabbitmq:5672/%2f"
-      EVENT_EXCHANGE: "ibanking.events"
-      EVENT_DLX: "ibanking.dlx"
-      OTP_QUEUE: "otp.payment.q"
-      CONSUMER_PREFETCH: "32"
-      RK_PAYMENT_PROCESSING: "payment.v1.processing"
-      RK_OTP_GENERATED: "otp.v1.generated"
-      RK_OTP_SUCCEED: "otp.v1.succeed"
-      RK_OTP_EXPIRED: "otp.v1.expired"
       OTP_TTL_SEC: "300"
       OTP_LENGTH: "6"
       REDIS_URL: "redis://redis:6379/0"
     depends_on:
-      rabbitmq:
-        condition: service_healthy
       redis:
         condition: service_healthy
     ports:
-      - "8085:8080"
+    - "8085:8080"
 
   notification_service:
     build:
       context: .
       dockerfile: notification_service/Dockerfile
     environment:
-      RABBIT_URL: "amqp://guest:guest@rabbitmq:5672/%2f"
-      EVENT_EXCHANGE: "ibanking.events"
-      EVENT_DLX: "ibanking.dlx"
-      # SMTP settings for sending emails
       SMTP_HOST: "smtp.gmail.com"
       SMTP_PORT: "587"
       SMTP_USER: "trananhm265@gmail.com"
       SMTP_PASSWORD: "mtaixgkchrxwjmrt"
       EMAIL_FROM: "trananhm265@gmail.com"
       DRY_RUN: "false"
-      # Optional: explicit Account Service URL for email lookup fallback
       ACCOUNT_SERVICE_URL: "http://account_service:8080"
     depends_on:
-      rabbitmq:
-        condition: service_healthy
+      authentication_service:
+        condition: service_started
     ports:
-      - "8086:8080"
+    - "8086:8080"
 
   gateway:
     build:
@@ -236,7 +155,7 @@ services:
       JWT_ALG: "HS256"
       ACCOUNT_SERVICE_URL: "http://account_service:8080"
       PAYMENT_SERVICE_URL: "http://payment_service:8080"
-      TUITION_SERVICE_URL: "http://tuition_service:8080"
+      BOOKING_SERVICE_URL: "http://booking_service:8080"
       OTP_SERVICE_URL: "http://otp_service:8080"
       NOTIFICATION_SERVICE_URL: "http://notification_service:8080"
       AUTHENTICATION_SERVICE_URL: "http://authentication_service:8080"
@@ -261,4 +180,4 @@ services:
 volumes:
   pgdata_account:
   pgdata_payment:
-  pgdata_tuition:
+  pgdata_booking:
