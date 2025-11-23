@@ -16,15 +16,6 @@ CREATE TABLE IF NOT EXISTS trips (
     fare_per_seat      numeric     NOT NULL
 );
 
-CREATE TABLE IF NOT EXISTS seat_reservations (
-    reservation_id     uuid        PRIMARY KEY DEFAULT uuid_generate_v4(),
-    trip_id            uuid        NOT NULL,
-    seats_reserved     int         NOT NULL,
-    status             text        NOT NULL, -- 'Locked', 'Confirmed', 'Cancelled'
-    expires_at         timestamp   NOT NULL,
-    created_at         timestamp   DEFAULT now()
-);
-
 -- Seed some data
 INSERT INTO trips (trip_id, brand, from_station_name, to_station_name, date_departure, departure_time, capacity, remaining_seats, status, route_name, fare_per_seat)
 VALUES 

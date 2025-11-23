@@ -7,4 +7,8 @@ class Settings(BaseSettings):
     DB_POOL_SIZE: int = 5
     DB_ECHO: bool = False
 
+# Redis cache
+    REDIS_URL: str = Field(default="redis://redis:6379/0")
+    REDIS_POOL_SIZE: int = Field(default=10)
+    
 settings = Settings()

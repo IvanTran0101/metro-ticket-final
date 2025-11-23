@@ -18,6 +18,7 @@ class TripResponse(BaseModel):
 
 class SeatLockRequest(BaseModel):
     trip_id: str
+    booking_id: str
     seats_reserved: int
 
 
