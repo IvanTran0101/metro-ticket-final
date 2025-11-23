@@ -1,14 +1,25 @@
 from pydantic import BaseModel
 
 
-class VerifyRequest(BaseModel):
+class LoginRequest(BaseModel):
     username: str
     password_hash: str
 
 
-class VerifyResponse(BaseModel):
-    ok: bool
-    user_id: str | None = None
-    full_name: str | None = None
-    phone_number: str | None = None
-    balance: float | None = None
+class LoginResponse(BaseModel):
+    userId: str
+    claims: dict[str, str]
+
+
+class AccountResponse(BaseModel):
+    userId: str
+    name: str
+    email: str
+    balance: float
+    phone_number: str
+
+
+class BalanceUpdateRequest(BaseModel):
+    user_id: str
+    amount: float
+
