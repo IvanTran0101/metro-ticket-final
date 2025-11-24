@@ -3,28 +3,30 @@ import logging
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 
 import os
 from notification_service.app.settings import settings
 from libs.http.client import HttpClient
+from notification_service.app.schemas import (
+    SendOTPRequest,
+    SendReceiptRequest,
+)
 
 logger = logging.getLogger(__name__)
+
 router = APIRouter()
 
-@router.post("/internal/notify/send_otp", status_code=status.HTTP_202_ACCEPTED)
+@router.post("/internal/notify/send_otp", status_code = status.HTTP_202_ACCEPTED)
 def send_otp(req: SendOTPRequest) -> dict:
-    
     try:
-        send_otp_email(
-            payment_id=req.payment_id,
-            user_id=req.user_id,
-            otp_code=req.otp_code,
-            email_in_payload=req.email
+        _send_otp_email_request(
+            email=req.email,
+            booking_id=req.booking_id,
+            otp_code=req.otp_code
         )
         return {"ok": True, "message": "OTP email processing initiated."}
     except Exception:
-        # Signal failure back to the calling service (OTP Service)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, 
             detail="Failed to send OTP email."
@@ -33,11 +35,10 @@ def send_otp(req: SendOTPRequest) -> dict:
 @router.post("/internal/notify/send_receipt", status_code=status.HTTP_202_ACCEPTED)
 def send_receipt(req: SendReceiptRequest) -> dict:
     try:
-        send_receipt_email (
+        _send_receipt_email_request(
+            email=req.email,
             payment_id=req.payment_id,
-            user_id=req.user_id,
-            amount=req.amount,
-            email_in_payload=req.email
+            amount=req.amount
         )
         return {"ok": True, "message": "Receipt email processing initiated."}
     except Exception:
@@ -70,85 +71,35 @@ def _send_email(to: str, subject: str, body: str) -> None:
         logger.error(f"Failed to send email: {e}")
         raise
 
-
-def _on_message(payload: Dict[str, Any], headers: Dict[str, Any], message_id: str) -> None:
-    """Handle notification events"""
-    event_type = (headers or {}).get("event-type", "")
-    user_id = payload.get("user_id")
-    payment_id = payload.get("payment_id")
+def _send_otp_email_request(email: str, booking_id: str, user_id: str, otp_code: str) -> None:
     
-    if not user_id or not payment_id:
-        logger.warning(
-            "notification_service missing user_id/payment_id event_type=%s message_id=%s payload=%s",
-            event_type,
-            message_id,
-            payload,
-        )
+    if not email or "@" not in email:
+        logger.warning("OTP email skipped: Invalid email for user_id=%s", user_id)
         return
+
+    subject = "Your OTP Code"
+    body = f"""
+        <h2>Your OTP Code</h2>
+        <p>Your OTP code is: <strong style="font-size: 24px;">{otp_code}</strong></p>
+        <p>Booking ID: {booking_id}</p>
+        <p>This code expires in 5 minutes.</p>
+        """
     
-    email_in_payload = payload.get("email")
-    user_email = email_in_payload if isinstance(email_in_payload, str) and "@" in email_in_payload else None
+    _send_email(to=email, subject=subject, body=body)
+    logger.info("OTP Email dispatched payment_id=%s to=%s", booking_id, email)
 
-    logger.info(
-        "notification_service received event_type=%s payment_id=%s user_id=%s email_in_payload=%s",
-        event_type,
-        payment_id,
-        user_id,
-        email_in_payload,
-    )
-
-    if not user_email:
-        try:
-            base_url = os.getenv("ACCOUNT_SERVICE_URL", "http://account_service:8080")
-            client = HttpClient(base_url=base_url)
-            corr_id = (headers or {}).get("correlation-id")
-            resp = client.get(
-                "/accounts/me",
-                headers={"X-User-Id": str(user_id)},
-                correlation_id=corr_id,
-            )
-            data = resp.json()
-            em = data.get("email") if isinstance(data, dict) else None
-            if isinstance(em, str) and "@" in em:
-                user_email = em
-        except Exception as e:
-            logger.warning("Email lookup failed for user %s: %s", user_id, e)
-
-    if not user_email:
-        logger.warning("notification_service no email available for user_id=%s payment_id=%s", user_id, payment_id)
+def _send_receipt_email_request(email: str, payment_id: str, amount: float) -> None:
+    if amount is None:
+        logger.warning("Receipt email skipped: Missing amount for payment_id=%s", payment_id)
         return
+        
+    subject = "Payment Receipt"
+    body = f"""
+        <h2>✅ Payment Successful</h2>
+        <p>Payment ID: {payment_id}</p>
+        <p>Amount: ${amount:,.2f}</p>
+        <p>Thank you for your payment!</p>
+        """
     
-    if event_type == "otp_generated":
-        otp = payload.get("otp")
-        if not otp:
-            logger.warning("notification_service otp_generated missing otp payment_id=%s", payment_id)
-            return
-        _send_email(
-            to=user_email,
-            subject="Your OTP Code",
-            body=f"""
-            <h2>Your OTP Code</h2>
-            <p>Your OTP code is: <strong style="font-size: 24px;">{otp}</strong></p>
-            <p>Payment ID: {payment_id}</p>
-            <p>This code expires in 5 minutes.</p>
-            """
-        )
-        logger.info("notification_service delivered otp email payment_id=%s to=%s", payment_id, user_email)
-    
-    elif event_type == "payment_completed":
-        amount = payload.get("amount")
-        if amount is None:
-            return
-        _send_email(
-            to=user_email,
-            subject="Payment Receipt",
-            body=f"""
-            <h2>✅ Payment Successful</h2>
-            <p>Payment ID: {payment_id}</p>
-            <p>Amount: ${amount:,.2f}</p>
-            <p>Thank you for your payment!</p>
-            """
-        )
-        logger.info("notification_service delivered receipt email payment_id=%s to=%s", payment_id, user_email)
-    else:
-        logger.debug("notification_service ignoring event_type=%s", event_type)
+    _send_email(to=email, subject=subject, body=body)
+    logger.info("Receipt Email dispatched payment_id=%s to=%s", payment_id, email)
