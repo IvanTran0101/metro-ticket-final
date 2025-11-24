@@ -31,7 +31,6 @@ def search_trip(
 
     if from_station:
         query += "AND from_station_name = :from_station"
-
         params["from_station"] = from_station
     if to_station:
         query += "AND to_station_name =: to_station"

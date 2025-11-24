@@ -35,6 +35,7 @@ class GenerateOTPRequest(BaseModel):
     booking_id: str | None = None
     trip_id: str | None = None
     amount: float
+    email: str
     status: str 
 
 
