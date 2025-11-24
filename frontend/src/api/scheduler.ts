@@ -14,7 +14,7 @@ export interface TripResponse {
 }
 
 export async function getTripDetails(tripId: string): Promise<TripResponse> {
-  return api(`/internal/get/route/trip/${tripId}`, {
+  return api(`/scheduler/route/trip/${tripId}`, {
     method: "GET",
     requireAuth: true,
   });
