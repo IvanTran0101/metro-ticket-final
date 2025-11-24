@@ -47,7 +47,7 @@ def generate_otp(body: GenerateOTPRequest) -> GenerateOTPResponse:
         expires_at=expires_at,
     )
 
-@router.post("/otp/verify", response_model = VerifyOTPResponse, responses={ status.HTTP_400_BAD_REQUEST: {"model": VerifyOTPErrorResponse}})
+@router.post("/internal/otp/verify", response_model = VerifyOTPResponse, responses={ status.HTTP_400_BAD_REQUEST: {"model": VerifyOTPErrorResponse}})
 def verify_otp(body: VerifyOTPRequest, x_user_id: str | None = Header(default=None, alias="X-User-Id")) -> dict:
     # Gateway should have verified JWT and injected X-User-Id
     if not x_user_id:
