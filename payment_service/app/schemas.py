@@ -2,34 +2,22 @@ from enum import Enum
 from pydantic import BaseModel, Field
 
 class PaymentStatus(str,Enum):
-    PROCESSING = "PROCESSING"
-    AUTHORIZED = "AUTHORIZED"
+    PENDING = "PENDING"
     COMPLETED = "COMPLETED"
-    CANCELED = "CANCELED"
     FAILED = "FAILED"
     
 class PaymentInitRequest(BaseModel):
-    tuition_id: str
+    booking_id: str
     amount: int
-    term_no: int | None = None
-    user_id: str | None = None
-    student_id: str
 
 class PaymentInitResponse(BaseModel):
     payment_id: str
-    status: PaymentStatus
+    message: str
 
-class PaymentDTO(BaseModel):
+class PaymentVerifyRequest(BaseModel):
     payment_id: str
-    tuition_id: str
-    user_id: str
-    amount: int
-    status: PaymentStatus
-    expires_at: str | None = None
-    complete_at: str | None = None
+    otp_code: str
     
-class PaymentStatusResponse(BaseModel):
+class PaymentVerifyResponse(BaseModel):
     ok: bool
-    payment: PaymentDTO | None = None
-    error_code: str | None = None
-    error_message: str | None = None
+    message: str
