@@ -14,5 +14,5 @@ class NotificationClient:
             "user_id": user_id,
             "email": email,
         }
-        resp = self._client.post("/internal/notification/send_otp", json = payload)
+        resp = self._client.post("/internal/post/notification/send_otp", json = payload)
         return resp.json()

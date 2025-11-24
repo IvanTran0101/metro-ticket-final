@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
-@router.post("/internal/notify/send_otp", status_code = status.HTTP_202_ACCEPTED)
+@router.post("/internal/post/notification/send_otp", status_code = status.HTTP_202_ACCEPTED)
 def send_otp(req: SendOTPRequest) -> dict:
     try:
         _send_otp_email_request(
@@ -32,7 +32,7 @@ def send_otp(req: SendOTPRequest) -> dict:
             detail="Failed to send OTP email."
         )
     
-@router.post("/internal/notify/send_receipt", status_code=status.HTTP_202_ACCEPTED)
+@router.post("/internal/post/notification/send_receipt", status_code=status.HTTP_202_ACCEPTED)
 def send_receipt(req: SendReceiptRequest) -> dict:
     try:
         _send_receipt_email_request(
