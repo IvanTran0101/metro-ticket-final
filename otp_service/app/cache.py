@@ -26,15 +26,15 @@ def _key(payment_id: str) -> str:
     return f"otp:{payment_id}"
 
 
-def set_otp(payment_id: str, data: Dict[str, Any], ttl_sec: int) -> None:
+def set_otp(booking_id: str, data: Dict[str, Any], ttl_sec: int) -> None:
     expires_at = int(time.time()) + int(ttl_sec)
     record = dict(data)
     record["expires_at"] = expires_at
-    _redis().setex(_key(payment_id), ttl_sec, json.dumps(record))
+    _redis().setex(_key(booking_id), ttl_sec, json.dumps(record))
 
 
-def get_otp(payment_id: str) -> Optional[Dict[str, Any]]:
-    raw = _redis().get(_key(payment_id))
+def get_otp(booking_id: str) -> Optional[Dict[str, Any]]:
+    raw = _redis().get(_key(booking_id))
     if raw is None:
         return None
     try:
@@ -43,8 +43,5 @@ def get_otp(payment_id: str) -> Optional[Dict[str, Any]]:
         return None
 
 
-def del_otp(payment_id: str) -> None:
-    _redis().delete(_key(payment_id))
-
-
-# No attempt counting; UI handles rate limiting/throttling.
+def del_otp(booking_id: str) -> None:
+    _redis().delete(_key(booking_id))
