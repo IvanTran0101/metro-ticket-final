@@ -8,6 +8,6 @@ class Settings(BaseSettings):
     DB_ECHO: bool = False
     
     # Service URLs
-    SCHEDULER_SERVICE_URL: str = os.getenv("SCHEDULER_SERVICE_URL", "http://scheduler_service:8000")
+    SCHEDULER_SERVICE_URL: str = os.getenv("SCHEDULER_SERVICE_URL", "http://scheduler_service:8080")
 
 settings = Settings()

@@ -11,6 +11,9 @@ class Settings(BaseSettings):
     REDIS_URL: str = Field(default="redis://redis:6379/0")
     REDIS_POOL_SIZE: int = Field(default=10)
 
+    # Service URLs
+    NOTIFICATION_SERVICE_URL: str = Field(default="http://notification_service:8080")
+
     class Config:
         env_file = ".env"
         case_sensitive = False

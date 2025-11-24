@@ -19,6 +19,9 @@ else:
 
 def create_app() -> FastAPI:
     app = FastAPI(title="notification_service")
+    
+    from notification_service.app.api import router
+    app.include_router(router)
 
     return app
 

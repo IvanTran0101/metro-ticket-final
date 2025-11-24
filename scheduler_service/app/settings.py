@@ -1,5 +1,7 @@
+from __future__ import annotations
+
 import os
-from pydantic import BaseSettings
+from pydantic import BaseSettings, Field
 
 
 class Settings(BaseSettings):

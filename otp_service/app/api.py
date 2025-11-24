@@ -40,6 +40,14 @@ def generate_otp(body: GenerateOTPRequest) -> GenerateOTPResponse:
     except Exception:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to cache OTP")
 
+    # Send OTP via email
+    from otp_service.app.client.notification_client import NotificationClient
+    notification_client = NotificationClient()
+    try:
+        notification_client.send_otp(body.booking_id, otp_code, body.user_id, body.email)
+    except Exception:
+        pass  # Don't fail if email sending fails
+
     return GenerateOTPResponse(
         success=True,
         booking_id=body.booking_id,

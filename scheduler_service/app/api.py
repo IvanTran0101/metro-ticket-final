@@ -7,7 +7,7 @@ from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from scheduler_service.app.db import get_db
-from scheduler_service.app.db import (
+from scheduler_service.app.schemas import (
     TripResponse,
     SeatLockRequest,
     SeatLockResponse,
@@ -45,6 +45,9 @@ def search_trip(
     results = []
     for trip in trips:
         trip_dict = dict(trip)
+        
+        # Convert UUID to string for JSON serialization
+        trip_dict["trip_id"] = str(trip_dict["trip_id"])
 
         locked_keys = r.keys(f"lock:{trip_dict['trip_id']}:*")
         total_locked = 0
@@ -142,6 +145,10 @@ def get_trip_details(trip_id: str, db: Session = Depends(get_db)):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Trip not found")
 
     trip_dict = dict(row)
+    
+    # Convert UUID to string for JSON serialization
+    trip_dict["trip_id"] = str(trip_dict["trip_id"])
+    
     locked_keys = r.keys(f"lock:{trip_id}:*")
     total_locked = 0
     for key in locked_keys:

@@ -106,27 +106,40 @@ async def _proxy(request: Request, base_url: str, tail: str, *, require_auth: bo
     )
 
     x_user_id = None
+    x_user_email = None
     if require_auth and not is_docs:
         x_user_id = await _require_user(request)
+        # Extract email from token for downstream services
+        auth = request.headers.get("authorization") or ""
+        if auth.lower().startswith("bearer "):
+            token = auth.split(" ", 1)[1].strip()
+            try:
+                claims = verify_and_decode(token, key=settings.JWT_SECRET, alg=settings.JWT_ALG)
+                x_user_email = claims.get("email") or None
+            except Exception:
+                pass
 
     cid = request.headers.get("correlation-id") or str(uuid.uuid4())
 
     # Build outgoing headers
-    headers = _filtered_headers(request.headers.items())
+    upstream_url = f"{base_url}/{normalized_tail}"
+    headers = _filtered_headers(request.headers.items()) # Assuming _filter_headers was a typo and _filtered_headers is intended
     headers["correlation-id"] = cid
     if x_user_id:
         headers["X-User-Id"] = x_user_id
+    if x_user_email:
+        headers["X-User-Email"] = x_user_email
 
     # Forward request
-    url = f"{base_url}/{tail}" if tail else base_url
     try:
-        body = await request.body()
+        body_bytes = await request.body()
         resp = await _client.request(
-            request.method,
-            url,
-            content=body if body else None,
+            method=request.method,
+            url=upstream_url,
             headers=headers,
             params=dict(request.query_params),
+            content=body_bytes,
+            timeout=None,
         )
     except httpx.RequestError:
         raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail="Upstream unavailable")

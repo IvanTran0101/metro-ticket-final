@@ -32,9 +32,9 @@ def init_payment(
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,detail="Missing user context")
     
     otp_client = OtpClient()
-    email = x_user_email
+    email = x_user_email or "user@example.com"
     try:
-        otp_client.generate_otp(req.booking_id, x_user_id, req.amount)
+        otp_client.generate_otp(req.booking_id, x_user_id, req.amount, email)
     except Exception:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail = "Failed to generate OTP")
 
@@ -54,7 +54,7 @@ def verify_otp(
 
     otp_client = OtpClient()
     try:
-        verify_resp = otp_client.verify_otp(booking_id,req.otp_code)
+        verify_resp = otp_client.verify_otp(booking_id, req.otp_code, x_user_id)
         if not verify_resp.get("success"):
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid OTP")
     except Exception:
@@ -108,7 +108,7 @@ def verify_otp(
     notification_client = NotificationClient()
     try:
         email = x_user_email or "user@example.com"
-        notification_client.send_receipt(payment_id,booking_id, x_user_id, email)
+        notification_client.send_receipt(payment_id, booking_id, x_user_id, email, amount)
     except Exception:
         pass
 
