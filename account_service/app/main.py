@@ -1,6 +1,5 @@
 import logging
 from fastapi import FastAPI
-import threading
 
 from account_service.app.api import router as api_router
 

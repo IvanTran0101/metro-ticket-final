@@ -23,6 +23,13 @@ class Settings(BaseSettings):
     # Business parameters
     HOLD_EXPIRES_MIN: int = Field(default=15, description="Minutes until a hold expires")
 
+    # Service URLs
+    ACCOUNT_SERVICE_URL: str = Field(default="http://account_service:8080")
+    OTP_SERVICE_URL: str = Field(default="http://otp_service:8080")
+    BOOKING_SERVICE_URL: str = Field(default="http://booking_service:8080")
+    SCHEDULER_SERVICE_URL: str = Field(default="http://scheduler_service:8080")
+    NOTIFICATION_SERVICE_URL: str = Field(default="http://notification_service:8080")
+
     class Config:
         env_file = ".env"
         case_sensitive = False

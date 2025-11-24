@@ -1,0 +1,6 @@
+{
+    "editor.inlineSuggest.enabled": false,
+    "editor.inlineSuggest.triggerCommandOnProviderChange": false,
+    "accessibility.verbosity.inlineCompletions": false,
+    "editor.suggest.showInlineDetails": false
+}
