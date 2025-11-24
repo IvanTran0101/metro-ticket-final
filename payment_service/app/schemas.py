@@ -11,11 +11,11 @@ class PaymentInitRequest(BaseModel):
     amount: int
 
 class PaymentInitResponse(BaseModel):
-    payment_id: str
+    booking_id: str
     message: str
 
 class PaymentVerifyRequest(BaseModel):
-    payment_id: str
+    booking_id: str
     otp_code: str
     
 class PaymentVerifyResponse(BaseModel):

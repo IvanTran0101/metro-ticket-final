@@ -17,7 +17,7 @@ from booking_service.app.clients.scheduler_client import SchedulerClient
 
 router = APIRouter()
 
-@router.post("/booking/trip_confirm", response_model=BookingResponse)
+@router.post("/booking/post/trip_confirm", response_model=BookingResponse)
 def create_booking(
     req: BookingCreateRequest,
     x_user_id: str | None = Header(default=None, alias="X-User-Id"),
@@ -84,7 +84,7 @@ def create_booking(
     )
 
 
-@router.get("/booking/{booking_id}", response_model=BookingResponse)
+@router.get("/get/booking/{booking_id}", response_model=BookingResponse)
 def get_booking(booking_id: str, db: Session = Depends(get_db)):
     sql = text("SELECT * FROM bookings WHERE booking_id = :bid")
     row = db.execute(sql, {"bid": booking_id}).mappings().first()

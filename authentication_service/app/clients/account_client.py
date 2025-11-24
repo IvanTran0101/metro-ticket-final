@@ -15,7 +15,7 @@ class AccountClient:
         """
         payload = {"username": username, "password_hash": password_hash}
         # Endpoint path is a suggestion; adjust to match account service.
-        resp = self._client.post("/internal/post/accounts/login", json=payload)
+        resp = self._client.post("/internal/post/account/login", json=payload)
         return resp.json()
 
     def get_account(self, user_id: str, *, authorization: Optional[str] = None, token: Optional[str] = None) -> Dict[str, Any]:

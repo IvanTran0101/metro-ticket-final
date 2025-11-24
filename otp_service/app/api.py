@@ -19,7 +19,7 @@ router = APIRouter()
 def _generate_otp_code(length: int) -> str:
     return "".join(str(random.randint(0, 9)) for _ in range(max(4, length)))
 
-@router.post("/internal/otp/generate", response_model=GenerateOTPResponse)
+@router.post("/internal/post/otp/generate", response_model=GenerateOTPResponse)
 def generate_otp(body: GenerateOTPRequest) -> GenerateOTPResponse:
     otp_code = _generate_otp_code(settings.OTP_LENGTH)
     ttl_sec = settings.OTP_TTL_SEC
@@ -47,13 +47,13 @@ def generate_otp(body: GenerateOTPRequest) -> GenerateOTPResponse:
         expires_at=expires_at,
     )
 
-@router.post("/internal/otp/verify", response_model = VerifyOTPResponse, responses={ status.HTTP_400_BAD_REQUEST: {"model": VerifyOTPErrorResponse}})
+@router.post("/internal/post/otp/verify", response_model = VerifyOTPResponse, responses={ status.HTTP_400_BAD_REQUEST: {"model": VerifyOTPErrorResponse}})
 def verify_otp(body: VerifyOTPRequest, x_user_id: str | None = Header(default=None, alias="X-User-Id")) -> dict:
     # Gateway should have verified JWT and injected X-User-Id
     if not x_user_id:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Missing user context")
 
-    rec = get_otp(body.payment_id)
+    rec = get_otp(body.booking_id)
     if not rec:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="OTP not found or expired")
 
@@ -62,7 +62,7 @@ def verify_otp(body: VerifyOTPRequest, x_user_id: str | None = Header(default=No
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid OTP")
 
     # Success: clear cache and notify
-    del_otp(body.payment_id)
+    del_otp(body.booking_id)
     return VerifyOTPResponse(message="OTP verified successfully. Transaction authorized.",
         data = OTPVerifiedData(
             user_id=rec["user_id"],

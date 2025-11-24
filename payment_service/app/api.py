@@ -1,39 +1,113 @@
-from fastapi import APIRouter, HTTPException, status, Header
-import uuid, datetime as dt
+import uuid
+from datetime import datetime
+from fastapi import APIRouter, HTTPException, status, Header, Depends
+from sqlalchemy import text
+from sqlalchemy.orm import Session
 
-from payment_service.app.settings import settings
-from payment_service.app.schemas import PaymentInitRequest, PaymentInitResponse
-from payment_service.app.cache import set_intent
-from payment_service.app.messaging.publisher import publish_payment_initiated
+from payment_service.app.db import get_db
+from payment_service.app.schemas import (
+    PaymentInitRequest,
+    PaymentInitResponse,
+    PaymentStatus,
+    PaymentVerifyRequest,
+    PaymentVerifyResponse,
+)
+
+from payment_service.app.client.account_client import AccountClient
+from payment_service.app.client.booking_client import BookingClient
+from payment_service.app.client.scheduler_client import SchedulerClient
+from payment_service.app.client.notification_client import NotificationClient
+from payment_service.app.client.otp_client import OtpClient
 
 router = APIRouter()
 
-@router.post("/payments/init", response_model=PaymentInitResponse)
-def init_payment(body: PaymentInitRequest, x_user_id: str | None = Header(None, alias="X-User-Id")) -> PaymentInitResponse:
-    if not x_user_id or body.amount <= 0:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid request")
+@router.post("/post/payment/payment_init", response_model=PaymentInitResponse)
+def init_payment(
+    req: PaymentInitRequest,
+    x_user_id: str | None = Header(default=None, alias="X-User-Id"),
+    x_user_email: str | None = Header(default=None, alias="X-User-Email"),
+    db: Session = Depends(get_db)
+):
+    if not x_user_id:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,detail="Missing user context")
+    
+    otp_client = OtpClient()
+    email = x_user_email
+    try:
+        otp_client.generate_otp(req.booking_id, x_user_id, req.amount)
+    except Exception:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail = "Failed to generate OTP")
+
+    return PaymentInitResponse(booking_id=req.booking_id, message="OTP sent to email")
+
+@router.post("/post/payment/verify_otp", response_model=PaymentVerifyResponse)
+def verify_otp(
+    req: PaymentVerifyRequest,
+    x_user_id: str | None = Header(default=None, alias="X-User-Id"),
+    x_user_email: str | None = Header(default=None, alias="X-User-Email"),
+    db: Session = Depends(get_db)
+):
+    if not x_user_id:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Missing user context")
+    
+    booking_id = req.booking_id
+
+    otp_client = OtpClient()
+    try:
+        verify_resp = otp_client.verify_otp(booking_id,req.otp_code)
+        if not verify_resp.get("success"):
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid OTP")
+    except Exception:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="verification failed")
+
+    otp_data = verify_resp.get("data", {})
+    amount = float(otp_data.get("amount",0))
+    trip_id = otp_data.get("trip_id")
 
     payment_id = str(uuid.uuid4())
-    expires_at = (dt.datetime.utcnow() + dt.timedelta(minutes=15)).isoformat()
-
-    # Save intent in Redis (stateless DB until completed)
-    set_intent(payment_id, {
-        "user_id": x_user_id,
-        "tuition_id": body.tuition_id,
-        "amount": body.amount,
-        "term": body.term_no,
-        "student_id": body.student_id,
-        "status": "PROCESSING",
-    }, ttl_sec=15*60)
-
-    # Publish PaymentInitiated once; both Account and Tuition receive it
-    publish_payment_initiated(
-        payment_id=payment_id,
-        user_id=x_user_id,
-        tuition_id=body.tuition_id,
-        amount=body.amount,
-        term=body.term_no,
-        student_id=body.student_id,
+    sql = text(
+        """
+        INSERT INTO payments (payment_id, booking_id, user_id, amount, status, expires_at)
+        VALUES (:pid, :bid, :uid, :amt, :status, NOW() + INTERVAL '15 minutes')
+        """
     )
+    db.execute(sql, {
+        "pid": payment_id,
+        "bid": booking_id,
+        "uid": x_user_id,
+        "amt": amount,
+        "status": PaymentStatus.PENDING.value
+    })
+    db.commit()
 
-    return PaymentInitResponse(payment_id=payment_id, status="PROCESSING")
+    account_client = AccountClient()
+    try:
+        account_client.balance_update(x_user_id,amount)
+    except Exception:
+        db.execute(text("UPDATE payments SET status = 'FAILED' WHERE payment_id = :pid"), {"pid": payment_id})
+        db.commit()
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Insufficient balance")
+    
+    booking_client = BookingClient()
+    scheduler_client = SchedulerClient()
+    
+    try: 
+        booking_client.booking_update(booking_id, trip_id)
+    
+        if trip_id:
+            scheduler_client.seat_update(trip_id, booking_id)
+    except Exception:
+        pass
+
+    db.execute(text("UPDATE payments SET status = :status, complete_at = NOW() WHERE payment_id = :pid"),
+    {"status": PaymentStatus.COMPLETED.value, "pid": payment_id})
+    db.commit()
+
+    notification_client = NotificationClient()
+    try:
+        email = x_user_email or "user@example.com"
+        notification_client.send_receipt(payment_id,booking_id, x_user_id, email)
+    except Exception:
+        pass
+
+    return PaymentVerifyResponse(ok = True, message="Payment successful")

@@ -19,7 +19,7 @@ router = APIRouter()
 
 r = redis.Redis.from_url(settings.REDIS_URL, decode_responses= True)
 
-@router.get("/route/trips", response_model=list[TripResponse])
+@router.get("/get/route/trips", response_model=list[TripResponse])
 def search_trip(
     from_station: str | None = None,
     to_station: str | None=None,

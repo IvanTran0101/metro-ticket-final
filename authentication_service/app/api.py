@@ -9,7 +9,7 @@ from authentication_service.app.clients.account_client import AccountClient
 router = APIRouter()
 
 
-@router.post("/authentication/login", response_model=LoginResponse)
+@router.post("/post/authentication/login", response_model=LoginResponse)
 def login(body: LoginRequest) -> LoginResponse:
     # Hash password before sending to account service
     pwd_hash = hash_password(body.password, settings.PASSWORD_SALT)
