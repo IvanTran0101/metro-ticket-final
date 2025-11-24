@@ -15,6 +15,7 @@ def login(body: LoginRequest) -> LoginResponse:
     pwd_hash = hash_password(body.password, settings.PASSWORD_SALT)
 
     try:
+        client = AccountClient()
         user_data = client.verify_credentials(body.username, pwd_hash)
     except Exception:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")

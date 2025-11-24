@@ -12,6 +12,7 @@ from otp_service.app.schemas import (
     GenerateOTPRequest,
     GenerateOTPResponse, 
 )
+from otp_service.app.client.payment_client import PaymentClient
 
 
 router = APIRouter()
@@ -55,6 +56,13 @@ def verify_otp(body: VerifyOTPRequest, x_user_id: str | None = Header(default=No
 
     rec = get_otp(body.booking_id)
     if not rec:
+        # OTP expired or not found - Trigger cleanup
+        try:
+            payment_client = PaymentClient()
+            payment_client.otp_expires(body.booking_id)
+        except Exception:
+            pass
+            
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="OTP not found or expired")
 
     # Compare code; UI handles rate limiting, no attempt tracking here

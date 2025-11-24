@@ -23,4 +23,5 @@ class BookingResponse(BaseModel):
 
 
 class BookingUpdateRequest(BaseModel):
+    booking_id: str
     status: str

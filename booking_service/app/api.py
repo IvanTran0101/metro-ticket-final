@@ -129,3 +129,21 @@ def update_booking_status(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Booking not found")
         
     return {"ok": True}
+
+@router.post("/internal/post/booking/booking_unlock")
+def unlock_booking(booking_id: str, db: Session = Depends(get_db)):
+    sql = text(
+        """
+        UPDATE bookings
+        SET status = 'Cancelled', cancelled_at = NOW()
+        WHERE booking_id = :bid
+        RETURNING trip_id
+        """
+    )
+    row = db.execute(sql, {"bid": booking_id}).mappings().first()
+    db.commit()
+
+    if not row:
+         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Booking not found")
+
+    return {"trip_id": row["trip_id"]}

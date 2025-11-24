@@ -80,14 +80,6 @@ def verify_otp(
     })
     db.commit()
 
-    account_client = AccountClient()
-    try:
-        account_client.balance_update(x_user_id,amount)
-    except Exception:
-        db.execute(text("UPDATE payments SET status = 'FAILED' WHERE payment_id = :pid"), {"pid": payment_id})
-        db.commit()
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Insufficient balance")
-    
     booking_client = BookingClient()
     scheduler_client = SchedulerClient()
     
@@ -97,7 +89,17 @@ def verify_otp(
         if trip_id:
             scheduler_client.seat_update(trip_id, booking_id)
     except Exception:
-        pass
+        db.execute(text("UPDATE payments SET status = 'FAILED' WHERE payment_id = :pid"), {"pid": payment_id})
+        db.commit()
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to confirm booking")
+
+    account_client = AccountClient()
+    try:
+        account_client.balance_update(x_user_id,amount)
+    except Exception:
+        db.execute(text("UPDATE payments SET status = 'FAILED' WHERE payment_id = :pid"), {"pid": payment_id})
+        db.commit()
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Insufficient balance")
 
     db.execute(text("UPDATE payments SET status = :status, complete_at = NOW() WHERE payment_id = :pid"),
     {"status": PaymentStatus.COMPLETED.value, "pid": payment_id})
@@ -111,3 +113,23 @@ def verify_otp(
         pass
 
     return PaymentVerifyResponse(ok = True, message="Payment successful")
+
+@router.post("/internal/post/payment/otp_expires")
+def otp_expires(booking_id: str):
+    booking_client = BookingClient()
+    scheduler_client = SchedulerClient()
+    
+    try:
+        # Unlock booking and get trip_id
+        booking_resp = booking_client.booking_unlock(booking_id)
+        trip_id = booking_resp.get("trip_id")
+        
+        if trip_id:
+            # Release seat lock
+            scheduler_client.seat_canceled(trip_id, booking_id)
+            
+    except Exception:
+        # Log error but don't fail the request as this is cleanup
+        pass
+        
+    return {"ok": True}

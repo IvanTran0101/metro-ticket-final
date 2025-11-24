@@ -28,6 +28,8 @@ TUITION_URL = settings.TUITION_SERVICE_URL.rstrip("/")
 OTP_URL = settings.OTP_SERVICE_URL.rstrip("/")
 NOTIF_URL = settings.NOTIFICATION_SERVICE_URL.rstrip("/")
 AUTH_URL = settings.AUTHENTICATION_SERVICE_URL.rstrip("/")
+BOOKING_URL = settings.BOOKING_SERVICE_URL.rstrip("/")
+SCHEDULER_URL = settings.SCHEDULER_SERVICE_URL.rstrip("/")
 
 
 app = FastAPI(title="Gateway")
@@ -144,37 +146,37 @@ async def health() -> Dict[str, str]:
 # Authentication
 @app.post("/auth/authentication/login")
 async def auth_login(request: Request) -> Response:
-    return await _proxy(request, AUTH_URL, "authentication/login", require_auth=False)
+    return await _proxy(request, AUTH_URL, "post/authentication/login", require_auth=False)
 
 
 @app.get("/account/accounts/me")
 async def account_me(request: Request) -> Response:
-    return await _proxy(request, ACCOUNT_URL, "accounts/me", require_auth=True)
+    return await _proxy(request, ACCOUNT_URL, "internal/get/account/me", require_auth=True)
 
 
 # Payment
 @app.post("/payment/payments/init")
 async def payment_init(request: Request) -> Response:
-    return await _proxy(request, PAYMENT_URL, "payments/init", require_auth=True)
+    return await _proxy(request, PAYMENT_URL, "post/payment/payment_init", require_auth=True)
+
+@app.post("/payment/verify_otp")
+async def payment_verify_otp(request: Request) -> Response:
+    return await _proxy(request, PAYMENT_URL, "post/payment/verify_otp", require_auth=True)
 
 
-# OTP
-@app.post("/otp/otp/verify")
-async def otp_verify(request: Request) -> Response:
-    return await _proxy(request, OTP_URL, "otp/verify", require_auth=True)
+# Booking
+@app.post("/booking/trip_confirm")
+async def booking_confirm(request: Request) -> Response:
+    return await _proxy(request, BOOKING_URL, "booking/post/trip_confirm", require_auth=True)
+
+@app.get("/booking/{booking_id}")
+async def booking_get(booking_id: str, request: Request) -> Response:
+    return await _proxy(request, BOOKING_URL, f"get/booking/{booking_id}", require_auth=True)
 
 
-# Tuition
-@app.get("/tuition/tuition/{student_id}")
-async def tuition_get(student_id: str, request: Request) -> Response:
-    return await _proxy(request, TUITION_URL, f"tuition/{student_id}", require_auth=True)
+# Scheduler
+@app.get("/route/trips")
+async def route_trips(request: Request) -> Response:
+    return await _proxy(request, SCHEDULER_URL, "get/route/trips", require_auth=True)
 
-if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run(
-        "gateway.app.main:app",
-        host=settings.SERVICE_HOST,
-        port=settings.SERVICE_PORT,
-        reload=False,
-        workers=1,
-    )
+

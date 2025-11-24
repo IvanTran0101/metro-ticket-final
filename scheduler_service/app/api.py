@@ -30,14 +30,14 @@ def search_trip(
     params = {}
 
     if from_station:
-        query += "AND from_station_name = :from_station"
+        query += " AND from_station_name = :from_station"
         params["from_station"] = from_station
     if to_station:
-        query += "AND to_station_name =: to_station"
+        query += " AND to_station_name =: to_station"
         params["to_station"] = to_station
     
     if date:
-        query += "AND date_departure =:date"
+        query += " AND date_departure =:date"
         params["date"] = date
     
     trips = db.execute(text(query), params).mappings().all()
@@ -46,7 +46,7 @@ def search_trip(
     for trip in trips:
         trip_dict = dict(trip)
 
-        locked_keys = r.keys(f"lock: {trip_dict['trip_id']}:*")
+        locked_keys = r.keys(f"lock:{trip_dict['trip_id']}:*")
         total_locked = 0
 
         for key in locked_keys:
@@ -155,3 +155,9 @@ def get_trip_details(trip_id: str, db: Session = Depends(get_db)):
     
     trip_dict["remaining_seats"] -= total_locked
     return trip_dict
+
+@router.post("/internal/post/route/seat_canceled")
+def cancel_seat(trip_id: str, booking_id: str):
+    lock_key = f"lock:{trip_id}:{booking_id}"
+    r.delete(lock_key)
+    return {"ok": True}

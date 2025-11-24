@@ -23,6 +23,7 @@ def send_otp(req: SendOTPRequest) -> dict:
         _send_otp_email_request(
             email=req.email,
             booking_id=req.booking_id,
+            user_id="unknown",
             otp_code=req.otp_code
         )
         return {"ok": True, "message": "OTP email processing initiated."}
