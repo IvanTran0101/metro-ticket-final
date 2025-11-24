@@ -6,7 +6,7 @@ services:
       POSTGRES_PASSWORD: account_pass
       POSTGRES_DB: account_db
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U account_user -d account_db"]
+      test: [ "CMD-SHELL", "pg_isready -U account_user -d account_db" ]
       interval: 5s
       timeout: 3s
       retries: 10
@@ -23,7 +23,7 @@ services:
       POSTGRES_PASSWORD: payment_pass
       POSTGRES_DB: payment_db
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U payment_user -d payment_db"]
+      test: [ "CMD-SHELL", "pg_isready -U payment_user -d payment_db" ]
       interval: 5s
       timeout: 3s
       retries: 10
@@ -40,7 +40,7 @@ services:
       POSTGRES_PASSWORD: booking_pass
       POSTGRES_DB: booking_db
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U booking_user -d booking_db"]
+      test: [ "CMD-SHELL", "pg_isready -U booking_user -d booking_db" ]
       interval: 5s
       timeout: 3s
       retries: 10
@@ -49,6 +49,23 @@ services:
     volumes:
       - pgdata_booking:/var/lib/postgresql/data
       - ./booking_service/db/migrations:/docker-entrypoint-initdb.d
+
+  postgres_scheduler:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: scheduler_user
+      POSTGRES_PASSWORD: scheduler_pass
+      POSTGRES_DB: scheduler_db
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U scheduler_user -d scheduler_db" ]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    ports:
+      - "5435:5432"
+    volumes:
+      - pgdata_scheduler:/var/lib/postgresql/data
+      - ./scheduler_service/db/migrations:/docker-entrypoint-initdb.d
 
   account_service:
     build:
@@ -66,7 +83,7 @@ services:
       redis:
         condition: service_healthy
     ports:
-    - "8081:8080"
+      - "8081:8080"
 
   authentication_service:
     build:
@@ -82,7 +99,7 @@ services:
       account_service:
         condition: service_started
     ports:
-    - "8082:8080"
+      - "8082:8080"
 
   payment_service:
     build:
@@ -97,7 +114,7 @@ services:
       redis:
         condition: service_healthy
     ports:
-    - "8083:8080"
+      - "8083:8080"
 
   booking_service:
     build:
@@ -110,7 +127,7 @@ services:
       postgres_booking:
         condition: service_healthy
     ports:
-    - "8084:8080"
+      - "8084:8080"
 
   otp_service:
     build:
@@ -124,7 +141,7 @@ services:
       redis:
         condition: service_healthy
     ports:
-    - "8085:8080"
+      - "8085:8080"
 
   notification_service:
     build:
@@ -142,7 +159,22 @@ services:
       authentication_service:
         condition: service_started
     ports:
-    - "8086:8080"
+      - "8086:8080"
+
+  scheduler_service:
+    build:
+      context: .
+      dockerfile: scheduler_service/Dockerfile
+    environment:
+      SCHEDULER_DATABASE_URL: "postgresql+psycopg2://scheduler_user:scheduler_pass@postgres_scheduler:5432/scheduler_db"
+      REDIS_URL: "redis://redis:6379/0"
+    depends_on:
+      postgres_scheduler:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    ports:
+      - "8087:8080"
 
   gateway:
     build:
@@ -159,18 +191,19 @@ services:
       OTP_SERVICE_URL: "http://otp_service:8080"
       NOTIFICATION_SERVICE_URL: "http://notification_service:8080"
       AUTHENTICATION_SERVICE_URL: "http://authentication_service:8080"
+      SCHEDULER_SERVICE_URL: "http://scheduler_service:8080"
     ports:
       - "8000:8080"
-    command: ["uvicorn", "gateway.app.main:app", "--host", "0.0.0.0", "--port", "8080"]
+    command: [ "uvicorn", "gateway.app.main:app", "--host", "0.0.0.0", "--port", "8080" ]
     depends_on:
       authentication_service:
         condition: service_started
 
   redis:
     image: redis:7
-    command: ["redis-server", "--appendonly", "yes"]
+    command: [ "redis-server", "--appendonly", "yes" ]
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: [ "CMD", "redis-cli", "ping" ]
       interval: 5s
       timeout: 3s
       retries: 10
@@ -181,3 +214,4 @@ volumes:
   pgdata_account:
   pgdata_payment:
   pgdata_booking:
+  pgdata_scheduler:
