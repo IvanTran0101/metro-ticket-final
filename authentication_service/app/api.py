@@ -22,7 +22,7 @@ def login(body: LoginRequest) -> LoginResponse:
 
     user_id = user_data.get("userId")
     claims = user_data.get("claims", {})
-    token = create_access_token(subject=str(user_id or body.username), claims=claims)
+    token = create_access_token(subject=str(user_id or body.username), extra_claims=claims)
     
     # Calculate expire time (same logic as in create_access_token)
     # We should ideally return the exact exp from token, but for now we use settings
