@@ -36,7 +36,7 @@ def init_payment(
     otp_client = OtpClient()
     email = x_user_email or "user@example.com"
     try:
-        otp_client.generate_otp(req.booking_id, x_user_id, req.amount, email)
+        otp_client.generate_otp(req.booking_id, x_user_id, req.amount, email, req.trip_id)
     except Exception:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail = "Failed to generate OTP")
 

@@ -11,6 +11,7 @@ class PaymentStatus(str,Enum):
 class PaymentInitRequest(BaseModel):
     booking_id: str
     amount: int
+    trip_id: str | None = None
 
 class PaymentInitResponse(BaseModel):
     booking_id: str
