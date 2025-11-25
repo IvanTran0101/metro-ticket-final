@@ -1,0 +1,133 @@
+.card {
+  max-width: 600px;
+  margin: 20px auto;
+  padding: 30px;
+  background: #fff;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.header {
+  text-align: center;
+  margin-bottom: 30px;
+  padding-bottom: 20px;
+  border-bottom: 2px solid #28a745;
+}
+
+.title {
+  font-size: 24px;
+  color: #28a745;
+  margin: 0 0 8px 0;
+}
+
+.subtitle {
+  font-size: 14px;
+  color: #666;
+  margin: 0;
+}
+
+.section {
+  margin-bottom: 24px;
+  padding: 16px;
+  background: #f9f9f9;
+  border-left: 4px solid #007bff;
+  border-radius: 4px;
+}
+
+.section h3 {
+  margin: 0 0 12px 0;
+  font-size: 16px;
+  color: #333;
+}
+
+.infoRow {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 8px;
+  font-size: 14px;
+}
+
+.infoRow:last-child {
+  margin-bottom: 0;
+}
+
+.label {
+  color: #666;
+  font-weight: 500;
+}
+
+.value {
+  color: #333;
+  font-weight: 600;
+  text-align: right;
+}
+
+.balanceSection {
+  margin-bottom: 24px;
+  padding: 20px;
+  background: #f0f8ff;
+  border: 2px solid #007bff;
+  border-radius: 8px;
+}
+
+.balanceSection h3 {
+  margin: 0 0 12px 0;
+  font-size: 16px;
+  color: #007bff;
+}
+
+.balanceRow {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 8px;
+  font-size: 14px;
+}
+
+.balanceValue {
+  font-weight: 600;
+  color: #333;
+}
+
+.deduction {
+  color: #d9534f;
+  font-weight: 500;
+}
+
+.deductionValue {
+  color: #d9534f;
+  font-weight: 600;
+}
+
+.currentBalance {
+  color: #28a745;
+  font-size: 18px;
+}
+
+.buttonGroup {
+  display: flex;
+  gap: 12px;
+  margin-top: 24px;
+}
+
+.button {
+  flex: 1;
+  padding: 12px 20px;
+  font-size: 16px;
+  font-weight: 600;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  background: #007bff;
+  color: white;
+  transition: background 0.3s ease;
+}
+
+.button:hover {
+  background: #0056b3;
+}
+
+.button:disabled {
+  background: #ccc;
+  cursor: not-allowed;
+}

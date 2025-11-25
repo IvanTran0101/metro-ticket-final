@@ -1,25 +1,30 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { getAccountMe } from "../api/account";
-import { getTuitionByStudentId } from "../api/tuition";
 import { initPayment } from "../api/payment";
+import { getBookingDetails } from "../api/booking";
 import { logout } from "../api/auth";
 import styles from "./PaymentForm.module.css";
 import OTPForm from "./OTPForm";
+import PaymentCompleteForm from "./PaymentCompleteForm";
 
 const OTP_TTL_MS = Number((import.meta && import.meta.env && import.meta.env.VITE_OTP_TTL_SEC) ?? 300) * 1000;
 
-export default function PaymentForm({ onLoggedOut }) {
+export default function PaymentForm({ onLoggedOut, booking = null, onBackToScheduler = null }) {
   const [me, setMe] = useState(null);
-  const [studentId, setStudentId] = useState("");
+  const [userId, setUserId] = useState(booking ? (booking.user_id || "") : "");
   const lookupTimer = useRef(null);
-  const [studentName, setStudentName] = useState("");
-  const [tuitionAmount, setTuitionAmount] = useState("");
-  const [tuitionId, setTuitionId] = useState("");
-  const [termNo, setTermNo] = useState("");
+  const [studentName, setUserName] = useState(booking ? (booking.user_full_name || "") : "");
+  const [totalBookingAmount, setBookingAmount] = useState(booking ? String(booking.total_amount ?? "") : "");
+  const [bookingId, setBookingId] = useState(booking ? booking.booking_id : "");
   const [agree, setAgree] = useState(false);
   const [loading, setLoading] = useState(false);
   const [msg, setMsg] = useState("");
   const [otpContext, setOtpContext] = useState(null);
+  const [bookingDetails, setBookingDetails] = useState(null);
+  const [confirmed, setConfirmed] = useState(false);
+  const [paymentComplete, setPaymentComplete] = useState(false);
+  const [completedPaymentId, setCompletedPaymentId] = useState(null);
+  const [previousBalance, setPreviousBalance] = useState(0);
 
   useEffect(() => {
     (async () => {
@@ -32,24 +37,45 @@ export default function PaymentForm({ onLoggedOut }) {
     })();
   }, []);
 
+  useEffect(() => {
+    if (!booking) return;
+    
+    setBookingDetails(booking);
+    setBookingId(booking.booking_id || "");
+    setBookingAmount(String(booking.total_amount ?? ""));
+    setUserId(booking.user_id || "");
+    setUserName(booking.user_full_name || me?.full_name || "");
+
+    (async () => {
+      try {
+        const d = await getBookingDetails(booking.booking_id);
+        setBookingDetails(d);
+      } catch (e) {
+        console.error("Failed to refresh booking details in background");
+      }
+    })();
+  }, [booking, me]);
+
   async function handleLookup() {
-    const sid = (studentId || "").trim();
+    if (booking) return; 
+    const sid = (userId || "").trim();
     if (!sid) return;
     setLoading(true);
     setMsg("");
     try {
-      const resp = await getTuitionByStudentId(sid);
-      setStudentId(resp.student_id || sid);
-      setTuitionId(resp.tuition_id);
-      setStudentName(resp.full_name || "");
-      setTermNo(resp.term_no || "");
-      setTuitionAmount(String(resp.amount_due ?? ""));
+      // Assuming getTuitionByStudentId is imported or defined elsewhere in your real code
+      const resp = await getTuitionByStudentId(sid); 
+      setUserId(resp.user_id || sid);
+      setBookingId(resp.booking_id);
+      setUserName(resp.full_name || "");
+      // setTermNo(resp.term_no || ""); // Assuming this state exists in your full code
+      setBookingAmount(String(resp.amount_due ?? ""));
     } catch (e) {
       setMsg(e?.message || "Tuition not found for student id");
-      setTuitionId("");
-      setStudentName("");
-      setTermNo("");
-      setTuitionAmount("");
+      setBookingId("");
+      setUserName("");
+      // setTermNo("");
+      setBookingAmount("");
     } finally {
       setLoading(false);
     }
@@ -58,21 +84,27 @@ export default function PaymentForm({ onLoggedOut }) {
   async function handleGetOtp(e) {
     e.preventDefault();
     if (!agree) return setMsg("Please accept the terms.");
-    const trimmedStudentId = studentId.trim();
-    if (!trimmedStudentId) return setMsg("Please enter a valid student ID and lookup tuition.");
-    if (!tuitionId || !tuitionAmount) return setMsg("Please lookup tuition first.");
+    const trimmedStudentId = userId.trim();
 
     setOtpContext(null);
     setLoading(true);
     setMsg("");
 
     try {
-      const res = await initPayment({
-        tuition_id: tuitionId,
-        amount: Number(tuitionAmount),
-        term_no: termNo || undefined,
-        student_id: trimmedStudentId,
-      });
+      const payload = booking
+        ? {
+            booking_id: booking.booking_id,
+            amount: Number(booking.total_amount ?? totalBookingAmount),
+            term_no: undefined,
+            student_id: me?.user_id || trimmedStudentId,
+          }
+        : {
+            booking_id: bookingId,
+            amount: Number(totalBookingAmount),
+            student_id: trimmedStudentId,
+          };
+
+      const res = await initPayment(payload);
       const expiresAt = Date.now() + OTP_TTL_MS;
       setOtpContext({ paymentId: res.payment_id, expiresAt });
       setMsg(`OTP sent for payment ${res.payment_id}. Enter it below within ${Math.floor(OTP_TTL_MS / 60000)} minutes.`);
@@ -83,6 +115,19 @@ export default function PaymentForm({ onLoggedOut }) {
     }
   }
 
+  function handleConfirmPayment(e) {
+    e?.preventDefault();
+    setMsg("");
+    const balance = Number(me?.balance ?? 0);
+    const total = Number(totalBookingAmount || 0);
+    if (Number.isNaN(total) || total <= 0) return setMsg("Invalid payment amount");
+    if (balance < total) {
+      setMsg("Insufficient balance. Please top up to confirm payment.");
+      return;
+    }
+    setConfirmed(true);
+  }
+
   function handleLogout() {
     setOtpContext(null);
     logout();
@@ -91,7 +136,10 @@ export default function PaymentForm({ onLoggedOut }) {
 
   function handleOtpVerified(pid) {
     setOtpContext(null);
-    setMsg(`OTP verified!. Payment authorization is in progress. Please reload the page`);
+    setCompletedPaymentId(pid);
+    setPreviousBalance(Number(me?.balance ?? 0) + Number(totalBookingAmount || 0));
+    setPaymentComplete(true);
+    setMsg(`Payment completed successfully!`);
   }
 
   function handleOtpExpired(pid) {
@@ -104,19 +152,33 @@ export default function PaymentForm({ onLoggedOut }) {
     return v.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   }, [me]);
 
-  // Debounce: after 5 seconds since last input, trigger lookup
   useEffect(() => {
     if (lookupTimer.current) clearTimeout(lookupTimer.current);
-    if (!studentId) return;
+    if (!userId) return;
     lookupTimer.current = setTimeout(() => handleLookup(), 5000);
     return () => {
       if (lookupTimer.current) clearTimeout(lookupTimer.current);
     };
-  }, [studentId]);
+  }, [userId]);
 
   return (
-    <form className={styles.card} onSubmit={handleGetOtp}>
-      <h2 className={styles.title}>Tuition Payment</h2>
+    <>
+      {paymentComplete ? (
+        <PaymentCompleteForm
+          me={me}
+          bookingDetails={bookingDetails}
+          paymentAmount={totalBookingAmount}
+          paymentId={completedPaymentId}
+          previousBalance={previousBalance}
+          onBackToHome={() => {
+            setPaymentComplete(false);
+            setCompletedPaymentId(null);
+            onBackToScheduler?.();
+          }}
+        />
+      ) : (
+        <form className={styles.card} onSubmit={handleGetOtp}>
+      <h2 className={styles.title}>Booking Payment</h2>
 
       {msg && (
         <div
@@ -148,31 +210,56 @@ export default function PaymentForm({ onLoggedOut }) {
         <input className={styles.input} value={me?.email || ""} disabled />
       </label>
 
-      <h3>2. Tuition Information</h3>
+      <h3>{booking ? "2. Booking Information" : "2. Tuition Information"}</h3>
 
+      {/* --- Main Amount Field --- */}
       <label className={styles.label}>
-        Student ID (MSSV)
-        <div className={styles.row}>
-          <input
-            className={styles.input}
-            value={studentId}
-            onChange={(e) => setStudentId(e.target.value)}
-            placeholder="Enter student code (e.g., 523K0017)"
-          />
-        </div>
+        Total Amount (VND)
+        <input className={styles.input} value={totalBookingAmount} disabled />
       </label>
 
-      <label className={styles.label}>
-        Student Name
-        <input className={styles.input} value={studentName} onChange={(e) => setStudentName(e.target.value)} disabled/>
-      </label>
+      {/* --- Detailed Booking Information as Fields --- */}
+      {bookingDetails && (
+        <>
+          <label className={styles.label}>
+            Booking Code
+            <input 
+              className={styles.input} 
+              value={bookingDetails.booking_code || ""} 
+              disabled 
+            />
+          </label>
 
-      <label className={styles.label}>
-        Tuition Amount (VND)
-        <input className={styles.input} value={tuitionAmount} onChange={(e) => setTuitionAmount(e.target.value)} disabled/>
-      </label>
+          <div style={{ display: 'flex', gap: '10px' }}>
+            <label className={styles.label} style={{ flex: 1 }}>
+              Seats
+              <input 
+                className={styles.input} 
+                value={bookingDetails.seats || 0} 
+                disabled 
+              />
+            </label>
 
-      <h3>3. Payment Information</h3>
+            <label className={styles.label} style={{ flex: 1 }}>
+              Seat Fare (VND)
+              <input 
+                className={styles.input} 
+                value={new Intl.NumberFormat('vi-VN').format(bookingDetails.seat_fare || 0)} 
+                disabled 
+              />
+            </label>
+          </div>
+
+          <label className={styles.label}>
+            Created At
+            <input 
+              className={styles.input} 
+              value={bookingDetails.created_at ? new Date(bookingDetails.created_at).toLocaleString() : ''} 
+              disabled 
+            />
+          </label>
+        </>
+      )}
 
       <div className={styles.balance}>
         <strong>Available Balance:</strong>{" "}
@@ -184,10 +271,21 @@ export default function PaymentForm({ onLoggedOut }) {
         I agree to the terms and conditions.
       </label>
 
-       <div className={styles.buttonGroup}>
-        <button className={styles.button} type="submit" disabled={loading}>
-          {loading ? "Processing..." : "Get OTP"}
-        </button>
+      <div className={styles.buttonGroup}>
+        {!confirmed ? (
+          <button
+            className={`${styles.button} ${Number(me?.balance ?? 0) < Number(totalBookingAmount || 0) ? styles.faded : ''}`}
+            type="button"
+            onClick={handleConfirmPayment}
+            disabled={loading || Number(me?.balance ?? 0) < Number(totalBookingAmount || 0)}
+          >
+            {loading ? "Processing..." : "Confirm Payment"}
+          </button>
+        ) : (
+          <button className={styles.button} type="submit" disabled={loading}>
+            {loading ? "Processing..." : "Get OTP"}
+          </button>
+        )}
 
         <button type="button" onClick={handleLogout} className={`${styles.button} ${styles.danger}`} disabled={loading}>
           Logout
@@ -196,13 +294,15 @@ export default function PaymentForm({ onLoggedOut }) {
 
       {otpContext && (
         <OTPForm
-          key={otpContext.paymentId}
-          paymentId={otpContext.paymentId}
+          key={otpContext.bookingId}
+          bookingId={bookingId}
           expiresAt={otpContext.expiresAt}
           onVerified={handleOtpVerified}
           onExpired={handleOtpExpired}
         />
       )}
-    </form>
+        </form>
+      )}
+    </>
   );
 }

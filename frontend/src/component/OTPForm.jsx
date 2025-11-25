@@ -14,7 +14,7 @@ function formatDuration(ms) {
 }
 
 export default function OTPForm({
-  paymentId,
+  bookingId: booking_id,
   expiresAt,
   onVerified,
   onExpired,
@@ -37,7 +37,7 @@ export default function OTPForm({
     setError("");
     setCooldownUntil(0);
     expiredNotified.current = false;
-  }, [paymentId, effectiveExpiry]);
+  }, [booking_id, effectiveExpiry]);
 
   useEffect(() => {
     const timer = setInterval(() => setNow(Date.now()), 500);
@@ -51,9 +51,9 @@ export default function OTPForm({
   useEffect(() => {
     if (expired && !expiredNotified.current) {
       expiredNotified.current = true;
-      onExpired?.(paymentId);
+      onExpired?.(booking_id);
     }
-  }, [expired, onExpired, paymentId]);
+  }, [expired, onExpired, booking_id]);
 
   async function handleSubmit(e) {
     e?.preventDefault?.();
@@ -69,9 +69,9 @@ export default function OTPForm({
     setStatus("");
 
     try {
-      await verifyOtp({ payment_id: paymentId, otp_code: otpCode.trim() });
+      await verifyOtp({ booking_id: booking_id, otp_code: otpCode.trim() });
       setStatus("OTP verified! Payment authorization is in progress.");
-      onVerified?.(paymentId);
+      onVerified?.(booking_id);
     } catch (err) {
       setError(err?.message || "Incorrect OTP. Please try again.");
       setCooldownUntil(Date.now() + attemptCooldownMs);
@@ -92,11 +92,6 @@ export default function OTPForm({
       <p className={styles.description}>
         Enter the 6-digit OTP sent to your registered email. This protects your account and prevents unauthorized tuition payments.
       </p>
-
-      <label className={styles.label}>
-        Payment ID
-        <input className={styles.input} value={paymentId} disabled />
-      </label>
 
       <label className={styles.label}>
         OTP Code
