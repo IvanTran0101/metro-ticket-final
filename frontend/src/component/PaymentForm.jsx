@@ -13,7 +13,6 @@ export default function PaymentForm({ onLoggedOut, booking = null, onBackToSched
   const [me, setMe] = useState(null);
   const [userId, setUserId] = useState(booking ? (booking.user_id || "") : "");
   const lookupTimer = useRef(null);
-  const [userName, setUserName] = useState(me ? (me?.full_name || "") : "");
   const [totalBookingAmount, setBookingAmount] = useState(booking ? String(booking.total_amount ?? "") : "");
   const [bookingId, setBookingId] = useState(booking ? booking.booking_id : "");
   const [agree, setAgree] = useState(false);
@@ -44,7 +43,6 @@ export default function PaymentForm({ onLoggedOut, booking = null, onBackToSched
     setBookingId(booking.booking_id || "");
     setBookingAmount(String(booking.total_amount ?? ""));
     setUserId(booking.user_id || "");
-    setUserName(me?.full_name || "");
 
     (async () => {
       try {
@@ -66,7 +64,6 @@ export default function PaymentForm({ onLoggedOut, booking = null, onBackToSched
       //Dummy
     } catch (e) {
       setBookingId("");
-      setUserName(me?.full_name);
       setBookingAmount("");
     } finally {
       setLoading(false);
@@ -188,7 +185,7 @@ export default function PaymentForm({ onLoggedOut, booking = null, onBackToSched
 
       <label className={styles.label}>
         Full Name
-        <input className={styles.input} value={userName || me?.full_name || ""} disabled />
+        <input className={styles.input} value={me?.name || ""} disabled />
       </label>
 
       <label className={styles.label}>
@@ -201,15 +198,13 @@ export default function PaymentForm({ onLoggedOut, booking = null, onBackToSched
         <input className={styles.input} value={me?.email || ""} disabled />
       </label>
 
-      <h3>{booking ? "2. Booking Information" : "2. Tuition Information"}</h3>
+      <h3>{"2. Booking Information" }</h3>
 
-      {/* --- Main Amount Field --- */}
       <label className={styles.label}>
         Total Amount (VND)
         <input className={styles.input} value={totalBookingAmount} disabled />
       </label>
 
-      {/* --- Detailed Booking Information as Fields --- */}
       {bookingDetails && (
         <>
           <label className={styles.label}>

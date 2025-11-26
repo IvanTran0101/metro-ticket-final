@@ -62,7 +62,7 @@ export default function PaymentCompleteForm({
         <h3>Payer Information</h3>
         <div className={styles.infoRow}>
           <span className={styles.label}>Full Name:</span>
-          <span className={styles.value}>{me?.full_name || ""}</span>
+          <span className={styles.value}>{me?.name || ""}</span>
         </div>
         <div className={styles.infoRow}>
           <span className={styles.label}>Email:</span>
