@@ -13,7 +13,7 @@ export default function PaymentForm({ onLoggedOut, booking = null, onBackToSched
   const [me, setMe] = useState(null);
   const [userId, setUserId] = useState(booking ? (booking.user_id || "") : "");
   const lookupTimer = useRef(null);
-  const [studentName, setUserName] = useState(booking ? (booking.user_full_name || "") : "");
+  const [userName, setUserName] = useState(me ? (me?.full_name || "") : "");
   const [totalBookingAmount, setBookingAmount] = useState(booking ? String(booking.total_amount ?? "") : "");
   const [bookingId, setBookingId] = useState(booking ? booking.booking_id : "");
   const [agree, setAgree] = useState(false);
@@ -44,7 +44,7 @@ export default function PaymentForm({ onLoggedOut, booking = null, onBackToSched
     setBookingId(booking.booking_id || "");
     setBookingAmount(String(booking.total_amount ?? ""));
     setUserId(booking.user_id || "");
-    setUserName(booking.user_full_name || me?.full_name || "");
+    setUserName(me?.full_name || "");
 
     (async () => {
       try {
@@ -58,23 +58,15 @@ export default function PaymentForm({ onLoggedOut, booking = null, onBackToSched
 
   async function handleLookup() {
     if (booking) return; 
-    const sid = (userId || "").trim();
-    if (!sid) return;
+    const user_id = (userId || "").trim();
+    if (!user_id) return;
     setLoading(true);
     setMsg("");
     try {
-      // Assuming getTuitionByStudentId is imported or defined elsewhere in your real code
-      const resp = await getTuitionByStudentId(sid); 
-      setUserId(resp.user_id || sid);
-      setBookingId(resp.booking_id);
-      setUserName(resp.full_name || "");
-      // setTermNo(resp.term_no || ""); // Assuming this state exists in your full code
-      setBookingAmount(String(resp.amount_due ?? ""));
+      //Dummy
     } catch (e) {
-      setMsg(e?.message || "Tuition not found for student id");
       setBookingId("");
-      setUserName("");
-      // setTermNo("");
+      setUserName(me?.full_name);
       setBookingAmount("");
     } finally {
       setLoading(false);
@@ -84,7 +76,7 @@ export default function PaymentForm({ onLoggedOut, booking = null, onBackToSched
   async function handleGetOtp(e) {
     e.preventDefault();
     if (!agree) return setMsg("Please accept the terms.");
-    const trimmedStudentId = userId.trim();
+    const trimmedUserId = userId.trim();
 
     setOtpContext(null);
     setLoading(true);
@@ -95,13 +87,12 @@ export default function PaymentForm({ onLoggedOut, booking = null, onBackToSched
         ? {
             booking_id: booking.booking_id,
             amount: Number(booking.total_amount ?? totalBookingAmount),
-            term_no: undefined,
-            student_id: me?.user_id || trimmedStudentId,
+            user_id: me?.user_id || trimmedUserId,
           }
         : {
             booking_id: bookingId,
             amount: Number(totalBookingAmount),
-            student_id: trimmedStudentId,
+            user_id: trimmedUserId,
           };
 
       const res = await initPayment(payload);
@@ -197,7 +188,7 @@ export default function PaymentForm({ onLoggedOut, booking = null, onBackToSched
 
       <label className={styles.label}>
         Full Name
-        <input className={styles.input} value={me?.full_name || ""} disabled />
+        <input className={styles.input} value={userName || me?.full_name || ""} disabled />
       </label>
 
       <label className={styles.label}>
