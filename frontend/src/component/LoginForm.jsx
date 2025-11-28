@@ -27,7 +27,7 @@ export default function LoginForm({ onLoggedIn }) {
 
   return (
     <form className={styles.card} onSubmit={handleSubmit}>
-      <h2 className={styles.title}>Sign In</h2>
+      <h2 className={styles.title}>Login</h2>
 
       {error && <div className={styles.error}>{error}</div>}
 
