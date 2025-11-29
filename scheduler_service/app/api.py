@@ -106,7 +106,7 @@ def lock_seat(req: SeatLockRequest, db: Session = Depends(get_db)):
 
     lock_key = f"lock:{req.trip_id}:{req.booking_id}"
 
-    expires_at = datetime.now() + timedelta(minutes=10)
+    expires_at = datetime.now() + timedelta(minutes=5)
 
     lock_data = {
         "trip_id": req.trip_id,

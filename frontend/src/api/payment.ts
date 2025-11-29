@@ -13,13 +13,13 @@ export interface InitPaymentResponse {
 }
 
 export interface PaymentHistoryResponse {
-  payment_id: string
-  booking_id: string
-  user_id: string
-  amount: number
-  complete_at: string
-  expires_at: string
-  status: string
+  payment_id: string;
+  booking_id: string;
+  user_id: string;
+  amount: number;
+  complete_at: string;
+  expires_at: string;
+  status: string;
 }
 
 export async function initPayment(body: InitPaymentRequest): Promise<InitPaymentResponse> {

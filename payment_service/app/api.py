@@ -138,14 +138,14 @@ def get_payment_history(
                 LIMIT 10
                 """
             )
-    rows = db.execute(sql, {"uid": x_user_id}).mappings().first()
+    rows = db.execute(sql, {"uid": x_user_id}).mappings().all()
 
     result = []
     for r in rows:
         rec = {
-            "payment_id": r["payment_id"],
-            "booking_id": r["booking_id"],
-            "user_id": r["user_id"],
+            "payment_id": str(r["payment_id"]),
+            "booking_id": str(r["booking_id"]),
+            "user_id": str(["user_id"]),
             "amount": float(r["amount"]),
             "complete_at": r["complete_at"],
             "expires_at": r["expires_at"],  
