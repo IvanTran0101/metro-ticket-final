@@ -62,7 +62,7 @@ export default function PaymentHistoryForm({ onBackToHome }) {
                     })}{" "}
                     VND
                   </td>
-                  <td>{new Date(item.created_at).toLocaleString()}</td>
+                  <td>{new Date(item.complete_at).toLocaleString()}</td>
                   <td>
                     <span
                       className={`${styles.status} ${

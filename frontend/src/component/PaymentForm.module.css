@@ -143,8 +143,10 @@
 
 /* Button Container */
 .buttonGroup {
-  display: grid;
+  display: flex;
   grid-template-columns: 1fr 1fr;
+  justify-content: center;  
+  align-items: center;
   gap: 12px;
   margin-top: 8px;
   border: none;
@@ -155,6 +157,8 @@
 
 /* Primary Button */
 .button {
+  width: 100%;              
+  max-width: 250px;
   padding: 14px;
   font-size: 1rem;
   font-weight: 600;

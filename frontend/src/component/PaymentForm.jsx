@@ -73,6 +73,17 @@ export default function PaymentForm({ onLoggedOut, booking = null, onBackToSched
 
   async function handleGetOtp(e) {
     e.preventDefault();
+    setMsg("");
+
+    const balance = Number(me?.balance ?? 0);
+    const total = Number(totalBookingAmount || 0);
+
+    if (Number.isNaN(total) || total <= 0) return setMsg("Invalid payment amount");
+    if (balance < total) {
+      setMsg("Insufficient balance. Please top up to confirm payment.");
+      return;
+    }
+
     if (!agree) return setMsg("Please accept the terms.");
     const trimmedUserId = userId.trim();
 
@@ -106,25 +117,6 @@ export default function PaymentForm({ onLoggedOut, booking = null, onBackToSched
     }
   }
 
-  function handleConfirmPayment(e) {
-    e?.preventDefault();
-    setMsg("");
-    const balance = Number(me?.balance ?? 0);
-    const total = Number(totalBookingAmount || 0);
-    if (Number.isNaN(total) || total <= 0) return setMsg("Invalid payment amount");
-    if (balance < total) {
-      setMsg("Insufficient balance. Please top up to confirm payment.");
-      return;
-    }
-    setConfirmed(true);
-  }
-
-  function handleLogout() {
-    setOtpContext(null);
-    logout();
-    onLoggedOut?.();
-  }
-
   function handleOtpVerified(pid) {
     setOtpContext(null);
     setCompletedPaymentId(pid);
@@ -151,6 +143,8 @@ export default function PaymentForm({ onLoggedOut, booking = null, onBackToSched
       if (lookupTimer.current) clearTimeout(lookupTimer.current);
     };
   }, [userId]);
+
+  const isBalanceLow = Number(me?.balance ?? 0) < Number(totalBookingAmount || 0);
 
   return (
     <>
@@ -273,20 +267,13 @@ export default function PaymentForm({ onLoggedOut, booking = null, onBackToSched
           </label>
 
           <div className={styles.buttonGroup}>
-            {!confirmed ? (
-              <button
-                className={`${styles.button} ${Number(me?.balance ?? 0) < Number(totalBookingAmount || 0) ? styles.faded : ''}`}
-                type="button"
-                onClick={handleConfirmPayment}
-                disabled={loading || Number(me?.balance ?? 0) < Number(totalBookingAmount || 0)}
+              <button 
+                className={`${styles.button} ${isBalanceLow ? styles.faded : ''}`} 
+                type="submit" 
+                disabled={loading}
               >
-                {loading ? "Processing..." : "Confirm Payment"}
+                {loading ? "Processing..." : "Confirm & Get OTP"}
               </button>
-            ) : (
-              <button className={styles.button} type="submit" disabled={loading}>
-                {loading ? "Processing..." : "Get OTP"}
-              </button>
-            )}
           </div>
 
           {otpContext && (
