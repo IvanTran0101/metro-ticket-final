@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { getPaymentHistory } from "../api/payment"; 
 import styles from "./PaymentHistoryForm.module.css";
 
 export default function PaymentHistoryForm({ onBackToHome }) {
@@ -7,11 +8,20 @@ export default function PaymentHistoryForm({ onBackToHome }) {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    // Placeholder for fetching payment history from API
-    // TODO: Implement API call to fetch payment history
-    setLoading(false);
-    // For now, show empty state
-    setHistory([]);
+    async function fetchHistory() {
+      try {
+        setLoading(true);
+        const data = await getPaymentHistory(); 
+        setHistory(Array.isArray(data) ? data : []);
+      } catch (err) {
+        console.error(err);
+        setError("Failed to load payment history");
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchHistory();
   }, []);
 
   return (
@@ -34,7 +44,7 @@ export default function PaymentHistoryForm({ onBackToHome }) {
             <thead>
               <tr>
                 <th>Payment ID</th>
-                <th>Booking Code</th>
+                <th>Booking ID</th>
                 <th>Amount</th>
                 <th>Date</th>
                 <th>Status</th>
@@ -44,12 +54,22 @@ export default function PaymentHistoryForm({ onBackToHome }) {
               {history.map((item) => (
                 <tr key={item.payment_id}>
                   <td>{item.payment_id}</td>
-                  <td>{item.booking_code}</td>
-                  <td>{Number(item.amount || 0).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })} VND</td>
+                  <td>{item.booking_id}</td>
+                  <td>
+                    {item.amount.toLocaleString(undefined, {
+                      minimumFractionDigits: 0,
+                      maximumFractionDigits: 0,
+                    })}{" "}
+                    VND
+                  </td>
                   <td>{new Date(item.created_at).toLocaleString()}</td>
                   <td>
-                    <span className={`${styles.status} ${styles[item.status?.toLowerCase() || 'pending']}`}>
-                      {item.status || 'Unknown'}
+                    <span
+                      className={`${styles.status} ${
+                        styles[item.status?.toLowerCase()] || ""
+                      }`}
+                    >
+                      {item.status || "Unknown"}
                     </span>
                   </td>
                 </tr>

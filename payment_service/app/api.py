@@ -3,6 +3,7 @@ from datetime import datetime
 from fastapi import APIRouter, HTTPException, status, Header, Depends
 from sqlalchemy import text
 from sqlalchemy.orm import Session
+from typing import List
 
 from payment_service.app.db import get_db
 from payment_service.app.schemas import (
@@ -11,6 +12,7 @@ from payment_service.app.schemas import (
     PaymentStatus,
     PaymentVerifyRequest,
     PaymentVerifyResponse,
+    PaymentHistoryResponse,
 )
 
 from payment_service.app.client.account_client import AccountClient
@@ -117,6 +119,41 @@ def verify_otp(
         pass
 
     return PaymentVerifyResponse(ok = True, message="Payment successful")
+
+@router.get("/get/payment/history", response_model=List[PaymentHistoryResponse])
+def get_payment_history(
+    x_user_id: str | None = Header(default=None, alias="X-User-Id"),
+    db: Session = Depends(get_db),
+):
+    #Return the 10 most recent payments
+    if not x_user_id:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Missing user context")
+    
+    sql = text(
+                """
+                SELECT payment_id, booking_id, user_id, amount, complete_at, expires_at, status
+                FROM payments
+                WHERE user_id = :uid
+                ORDER BY complete_at DESC
+                LIMIT 10
+                """
+            )
+    rows = db.execute(sql, {"uid": x_user_id}).mappings().all()
+
+    result = []
+    for r in rows:
+        rec = {
+            "payment_id": str(r["payment_id"]),
+            "booking_id": str(r["booking_id"]),
+            "user_id": str(["user_id"]),
+            "amount": float(r["amount"]),
+            "complete_at": r["complete_at"],
+            "expires_at": r["expires_at"],  
+            "status": r["status"],
+        }
+        result.append(rec)
+
+    return result
 
 @router.post("/internal/post/payment/otp_expires")
 def otp_expires(booking_id: str):

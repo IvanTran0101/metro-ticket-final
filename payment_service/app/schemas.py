@@ -1,5 +1,7 @@
 from enum import Enum
 from pydantic import BaseModel, Field
+from typing import Optional
+import datetime
 
 class PaymentStatus(str,Enum):
     PENDING = "PENDING"
@@ -23,3 +25,13 @@ class PaymentVerifyRequest(BaseModel):
 class PaymentVerifyResponse(BaseModel):
     ok: bool
     message: str
+
+
+class PaymentHistoryResponse(BaseModel):
+    payment_id: str
+    booking_id: str
+    user_id: str
+    amount: float
+    complete_at: Optional[datetime.datetime] = None
+    expires_at: Optional[datetime.datetime] = None
+    status: str
