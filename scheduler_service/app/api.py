@@ -11,7 +11,9 @@ from scheduler_service.app.schemas import (
     TripResponse,
     SeatLockRequest,
     SeatLockResponse,
+    SeatLockResponse,
     SeatUpdateRequest,
+    TripSearchRequest,
 )
 from scheduler_service.app.settings import settings
 
@@ -19,11 +21,9 @@ router = APIRouter()
 
 r = redis.Redis.from_url(settings.REDIS_URL, decode_responses= True)
 
-@router.get("/get/route/trips", response_model=list[TripResponse])
+@router.post("/post/route/trips", response_model=list[TripResponse])
 def search_trip(
-    from_station: str | None = None,
-    to_station: str | None=None,
-    date: str | None = None,
+    req: TripSearchRequest,
     db: Session = Depends(get_db)
 ):
     # Get current date and time
@@ -41,16 +41,16 @@ def search_trip(
     params["current_date"] = current_date
     params["current_time"] = current_time
 
-    if from_station:
+    if req.from_station:
         query += " AND from_station_name = :from_station"
-        params["from_station"] = from_station
-    if to_station:
+        params["from_station"] = req.from_station
+    if req.to_station:
         query += " AND to_station_name = :to_station"
-        params["to_station"] = to_station
+        params["to_station"] = req.to_station
     
-    if date:
+    if req.date:
         query += " AND date_departure = :date"
-        params["date"] = date
+        params["date"] = req.date
     
     trips = db.execute(text(query), params).mappings().all()
 
@@ -116,7 +116,7 @@ def lock_seat(req: SeatLockRequest, db: Session = Depends(get_db)):
         "expires_at": expires_at.isoformat()
     }
 
-    r.setex(lock_key, 600, json.dumps(lock_data))
+    r.setex(lock_key, 300, json.dumps(lock_data))
 
     return SeatLockResponse(
         trip_id = req.trip_id,
