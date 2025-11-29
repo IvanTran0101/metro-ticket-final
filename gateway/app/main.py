@@ -187,6 +187,6 @@ async def booking_get(booking_id: str, request: Request) -> Response:
     return await _proxy(request, BOOKING_URL, f"get/booking/{booking_id}", require_auth=True)
 
 #Scheduler
-@app.get("/route/trips")
+@app.post("/route/trips")
 async def route_trips(request: Request) -> Response:
-    return await _proxy(request, SCHEDULER_URL, "get/route/trips", require_auth=True)
+    return await _proxy(request, SCHEDULER_URL, "post/route/trips", require_auth=True)

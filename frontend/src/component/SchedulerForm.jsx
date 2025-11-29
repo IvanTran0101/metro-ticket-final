@@ -7,7 +7,7 @@ import styles from "./SchedulerForm.module.css";
 export default function SchedulerForm({ onBookingConfirmed }) {
   const [fromStation, setFromStation] = useState("");
   const [toStation, setToStation] = useState("");
-  const [date, setDate] = useState(""); 
+  const [date, setDate] = useState("");
   const [trips, setTrips] = useState([]);
   const [selected, setSelected] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -24,14 +24,14 @@ export default function SchedulerForm({ onBookingConfirmed }) {
 
     setLoading(true);
     try {
-      const res = await searchTrips({ 
-        from_station: fromStation.value, 
-        to_station: toStation.value, 
-        date: date.value || undefined 
+      const res = await searchTrips({
+        from_station: fromStation,
+        to_station: toStation,
+        date: date || undefined
       });
       console.log(res)
       const payload = Array.isArray(res) ? res : (res?.data || res?.results || res?.trips || []);
-      
+
       setTrips(res);
       if (!payload || (Array.isArray(payload) && payload.length === 0)) {
         setError("No trips found for the given criteria");
@@ -52,12 +52,12 @@ export default function SchedulerForm({ onBookingConfirmed }) {
   async function handleConfirm(e) {
     e?.preventDefault();
     setError("");
-    
+
     if (!selected) {
       setError("Please select a trip first");
       return;
     }
-    
+
     if (seats < 1 || seats > selected.remaining_seats) {
       setError("Invalid seat count");
       return;
@@ -65,9 +65,9 @@ export default function SchedulerForm({ onBookingConfirmed }) {
 
     setLoading(true);
     try {
-      const res = await createBooking({ 
-        trip_id: selected.trip_id, 
-        seats_reserved: Number(seats) 
+      const res = await createBooking({
+        trip_id: selected.trip_id,
+        seats_reserved: Number(seats)
       });
       setBooking(res);
       setError("");
@@ -108,33 +108,33 @@ export default function SchedulerForm({ onBookingConfirmed }) {
       <form onSubmit={handleSearch}>
         <label className={styles.label}>
           From Station
-          <input 
+          <input
             className={styles.input}
-            value={fromStation} 
-            onChange={(e) => setFromStation(e.target.value)} 
+            value={fromStation}
+            onChange={(e) => setFromStation(e.target.value)}
             placeholder="Enter departure station"
-            required 
+            required
           />
         </label>
 
         <label className={styles.label}>
           To Station
-          <input 
+          <input
             className={styles.input}
-            value={toStation} 
-            onChange={(e) => setToStation(e.target.value)} 
+            value={toStation}
+            onChange={(e) => setToStation(e.target.value)}
             placeholder="Enter arrival station"
-            required 
+            required
           />
         </label>
 
         <label className={styles.label}>
           Date (optional)
-          <input 
+          <input
             className={styles.input}
-            type="date" 
-            value={date} 
-            onChange={(e) => setDate(e.target.value)} 
+            type="date"
+            value={date}
+            onChange={(e) => setDate(e.target.value)}
           />
         </label>
 
@@ -148,8 +148,8 @@ export default function SchedulerForm({ onBookingConfirmed }) {
           <h3>2. Available Trips ({trips.length} found)</h3>
           <div className={styles.tripList}>
             {trips.map((trip) => (
-              <div 
-                key={trip.trip_id} 
+              <div
+                key={trip.trip_id}
                 className={`${styles.tripCard} ${selected?.trip_id === trip.trip_id ? styles.selectedTrip : ''}`}
                 onClick={() => handleSelectTrip(trip)}
               >
@@ -157,16 +157,16 @@ export default function SchedulerForm({ onBookingConfirmed }) {
                   <strong>{trip.route_name}</strong>
                   {trip.brand && <span className={styles.brand}>{trip.brand}</span>}
                 </div>
-                
+
                 <div className={styles.tripRoute}>
                   {trip.from_station_name} → {trip.to_station_name}
                 </div>
-                
+
                 <div className={styles.tripDetails}>
                   <span>📅 {trip.date_departure}</span>
                   <span>🕐 {trip.departure_time}</span>
                 </div>
-                
+
                 <div className={styles.tripDetails}>
                   <span>💺 {trip.remaining_seats} / {trip.capacity} seats</span>
                   <span>💰 {new Intl.NumberFormat('vi-VN').format(trip.fare_per_seat)} VND</span>
@@ -184,7 +184,7 @@ export default function SchedulerForm({ onBookingConfirmed }) {
       {selected && (
         <>
           <h3>3. Confirm Booking</h3>
-          
+
           <div className={styles.summaryCard}>
             <div className={styles.summaryRow}>
               <span>Route:</span>
@@ -211,13 +211,13 @@ export default function SchedulerForm({ onBookingConfirmed }) {
           <form onSubmit={handleConfirm}>
             <label className={styles.label}>
               Number of Seats
-              <input 
+              <input
                 className={styles.input}
-                type="number" 
-                min={1} 
-                max={selected.remaining_seats} 
-                value={seats} 
-                onChange={(e) => setSeats(e.target.value)} 
+                type="number"
+                min={1}
+                max={selected.remaining_seats}
+                value={seats}
+                onChange={(e) => setSeats(e.target.value)}
               />
             </label>
 

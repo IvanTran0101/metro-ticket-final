@@ -20,16 +20,11 @@ export interface SearchTripsParams {
 }
 
 export async function searchTrips(params: SearchTripsParams): Promise<TripResponse[]> {
-  const { from_station, to_station, date } = params;
 
-  const q: Record<string, string> = {};
-  if (from_station) q.from_station = String(from_station).trim();
-  if (to_station) q.to_station = String(to_station).trim();
-  if (date && date.trim()) q.date = String(date).trim();
 
   return api<TripResponse[]>('/route/trips', {
-    method: "GET",
-    query: q, 
+    method: "POST",
+    body: params,
     requireAuth: true,
   });
 }

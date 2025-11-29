@@ -32,3 +32,8 @@ class SeatLockResponse(BaseModel):
 class SeatUpdateRequest(BaseModel):
     trip_id: str
     booking_id: str
+
+class TripSearchRequest(BaseModel):
+    from_station: str | None = None
+    to_station: str | None = None
+    date: str | None = None
