@@ -12,6 +12,7 @@ class PaymentInitRequest(BaseModel):
     booking_id: str
     amount: int
     trip_id: str | None = None
+    pin: str
 
 class PaymentInitResponse(BaseModel):
     booking_id: str
