@@ -287,10 +287,6 @@ export default function PaymentForm({ onLoggedOut, booking = null, onBackToSched
                 {loading ? "Processing..." : "Get OTP"}
               </button>
             )}
-
-            <button type="button" onClick={handleLogout} className={`${styles.button} ${styles.danger}`} disabled={loading}>
-              Logout
-            </button>
           </div>
 
           {otpContext && (
