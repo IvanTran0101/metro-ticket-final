@@ -178,7 +178,7 @@ async def payment_verify_otp(request: Request) -> Response:
 
 
 # Booking
-@app.post("/booking/booking/trip_confirm")
+@app.post("/booking/trip_confirm")
 async def booking_confirm(request: Request) -> Response:
     return await _proxy(request, BOOKING_URL, "booking/post/trip_confirm", require_auth=True)
 

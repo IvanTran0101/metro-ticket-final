@@ -11,6 +11,17 @@ class AccountClient:
         headers = {"X-User-Id": user_id}
         resp = self._client.get("/internal/get/account/me", headers=headers)
         return resp.json()
+    
+    def verify_pin(self, user_id: str, pin: str) ->bool:
+        payload = {
+            "user_id": user_id,
+            "pin": pin
+        }
+        try:
+            self._client.post("/internal/post/account/verify_pin", json=payload)
+            return True
+        except Exception:
+            return False
 
     def balance_update(self, user_id: str, amount: float) -> Dict[str, Any]:
 

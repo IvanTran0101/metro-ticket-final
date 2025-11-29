@@ -24,6 +24,7 @@ export default function PaymentForm({ onLoggedOut, booking = null, onBackToSched
   const [paymentComplete, setPaymentComplete] = useState(false);
   const [completedPaymentId, setCompletedPaymentId] = useState(null);
   const [previousBalance, setPreviousBalance] = useState(0);
+  const [pin, setPin] = useState("");
 
   useEffect(() => {
     (async () => {
@@ -38,7 +39,7 @@ export default function PaymentForm({ onLoggedOut, booking = null, onBackToSched
 
   useEffect(() => {
     if (!booking) return;
-    
+
     setBookingDetails(booking);
     setBookingId(booking.booking_id || "");
     setBookingAmount(String(booking.total_amount ?? ""));
@@ -55,7 +56,7 @@ export default function PaymentForm({ onLoggedOut, booking = null, onBackToSched
   }, [booking, me]);
 
   async function handleLookup() {
-    if (booking) return; 
+    if (booking) return;
     const user_id = (userId || "").trim();
     if (!user_id) return;
     setLoading(true);
@@ -82,15 +83,17 @@ export default function PaymentForm({ onLoggedOut, booking = null, onBackToSched
     try {
       const payload = booking
         ? {
-            booking_id: booking.booking_id,
-            amount: Number(booking.total_amount ?? totalBookingAmount),
-            user_id: me?.user_id || trimmedUserId,
-          }
+          booking_id: booking.booking_id,
+          amount: Number(booking.total_amount ?? totalBookingAmount),
+          user_id: me?.user_id || trimmedUserId,
+          pin: pin,
+        }
         : {
-            booking_id: bookingId,
-            amount: Number(totalBookingAmount),
-            user_id: trimmedUserId,
-          };
+          booking_id: bookingId,
+          amount: Number(totalBookingAmount),
+          user_id: trimmedUserId,
+          pin: pin,
+        };
 
       const res = await initPayment(payload);
       const expiresAt = Date.now() + OTP_TTL_MS;
@@ -166,127 +169,139 @@ export default function PaymentForm({ onLoggedOut, booking = null, onBackToSched
         />
       ) : (
         <form className={styles.card} onSubmit={handleGetOtp}>
-      <h2 className={styles.title}>Booking Payment</h2>
+          <h2 className={styles.title}>Booking Payment</h2>
 
-      {msg && (
-        <div
-          className={styles.info}
-          style={
-            msg.startsWith("OTP verified!")
-              ? { color: "#0f5132" }
-              : undefined
-          }
-        >
-          {msg}
-        </div>
-      )}
+          {msg && (
+            <div
+              className={styles.info}
+              style={
+                msg.startsWith("OTP verified!")
+                  ? { color: "#0f5132" }
+                  : undefined
+              }
+            >
+              {msg}
+            </div>
+          )}
 
-      <h3>1. Payer Information</h3>
+          <h3>1. Payer Information</h3>
 
-      <label className={styles.label}>
-        Full Name
-        <input className={styles.input} value={me?.name || ""} disabled />
-      </label>
-
-      <label className={styles.label}>
-        Phone Number
-        <input className={styles.input} value={me?.phone_number || ""} disabled />
-      </label>
-
-      <label className={styles.label}>
-        Email
-        <input className={styles.input} value={me?.email || ""} disabled />
-      </label>
-
-      <h3>{"2. Booking Information" }</h3>
-
-      <label className={styles.label}>
-        Total Amount (VND)
-        <input className={styles.input} value={totalBookingAmount} disabled />
-      </label>
-
-      {bookingDetails && (
-        <>
           <label className={styles.label}>
-            Booking Code
-            <input 
-              className={styles.input} 
-              value={bookingDetails.booking_code || ""} 
-              disabled 
-            />
+            Full Name
+            <input className={styles.input} value={me?.name || ""} disabled />
           </label>
 
-          <div style={{ display: 'flex', gap: '10px' }}>
-            <label className={styles.label} style={{ flex: 1 }}>
-              Seats
-              <input 
-                className={styles.input} 
-                value={bookingDetails.seats || 0} 
-                disabled 
-              />
-            </label>
+          <label className={styles.label}>
+            Phone Number
+            <input className={styles.input} value={me?.phone_number || ""} disabled />
+          </label>
 
-            <label className={styles.label} style={{ flex: 1 }}>
-              Seat Fare (VND)
-              <input 
-                className={styles.input} 
-                value={new Intl.NumberFormat('vi-VN').format(bookingDetails.seat_fare || 0)} 
-                disabled 
-              />
-            </label>
+          <label className={styles.label}>
+            Email
+            <input className={styles.input} value={me?.email || ""} disabled />
+          </label>
+
+          <h3>{"2. Booking Information"}</h3>
+
+          <label className={styles.label}>
+            Total Amount (VND)
+            <input className={styles.input} value={totalBookingAmount} disabled />
+          </label>
+
+          {bookingDetails && (
+            <>
+              <label className={styles.label}>
+                Booking Code
+                <input
+                  className={styles.input}
+                  value={bookingDetails.booking_code || ""}
+                  disabled
+                />
+              </label>
+
+              <div style={{ display: 'flex', gap: '10px' }}>
+                <label className={styles.label} style={{ flex: 1 }}>
+                  Seats
+                  <input
+                    className={styles.input}
+                    value={bookingDetails.seats || 0}
+                    disabled
+                  />
+                </label>
+
+                <label className={styles.label} style={{ flex: 1 }}>
+                  Seat Fare (VND)
+                  <input
+                    className={styles.input}
+                    value={new Intl.NumberFormat('vi-VN').format(bookingDetails.seat_fare || 0)}
+                    disabled
+                  />
+                </label>
+              </div>
+
+              <label className={styles.label}>
+                Created At
+                <input
+                  className={styles.input}
+                  value={bookingDetails.created_at ? new Date(bookingDetails.created_at).toLocaleString() : ''}
+                  disabled
+                />
+              </label>
+            </>
+          )}
+
+          <div className={styles.balance}>
+            <strong>Available Balance:</strong>{" "}
+            <span>{balanceFmt} VND</span>
           </div>
 
           <label className={styles.label}>
-            Created At
-            <input 
-              className={styles.input} 
-              value={bookingDetails.created_at ? new Date(bookingDetails.created_at).toLocaleString() : ''} 
-              disabled 
+            PIN Code
+            <input
+              className={styles.input}
+              type="password"
+              value={pin}
+              onChange={(e) => setPin(e.target.value)}
+              placeholder="Enter your 6-digit PIN"
+              maxLength={6}
             />
           </label>
-        </>
-      )}
 
-      <div className={styles.balance}>
-        <strong>Available Balance:</strong>{" "}
-        <span>{balanceFmt} VND</span>
-      </div>
+          <label className={styles.checkbox}>
+            <input type="checkbox" checked={agree} onChange={(e) => setAgree(e.target.checked)} />
+            I agree to the terms and conditions.
+          </label>
 
-      <label className={styles.checkbox}>
-        <input type="checkbox" checked={agree} onChange={(e) => setAgree(e.target.checked)} />
-        I agree to the terms and conditions.
-      </label>
+          <div className={styles.buttonGroup}>
+            {!confirmed ? (
+              <button
+                className={`${styles.button} ${Number(me?.balance ?? 0) < Number(totalBookingAmount || 0) ? styles.faded : ''}`}
+                type="button"
+                onClick={handleConfirmPayment}
+                disabled={loading || Number(me?.balance ?? 0) < Number(totalBookingAmount || 0)}
+              >
+                {loading ? "Processing..." : "Confirm Payment"}
+              </button>
+            ) : (
+              <button className={styles.button} type="submit" disabled={loading}>
+                {loading ? "Processing..." : "Get OTP"}
+              </button>
+            )}
 
-      <div className={styles.buttonGroup}>
-        {!confirmed ? (
-          <button
-            className={`${styles.button} ${Number(me?.balance ?? 0) < Number(totalBookingAmount || 0) ? styles.faded : ''}`}
-            type="button"
-            onClick={handleConfirmPayment}
-            disabled={loading || Number(me?.balance ?? 0) < Number(totalBookingAmount || 0)}
-          >
-            {loading ? "Processing..." : "Confirm Payment"}
-          </button>
-        ) : (
-          <button className={styles.button} type="submit" disabled={loading}>
-            {loading ? "Processing..." : "Get OTP"}
-          </button>
-        )}
+            <button type="button" onClick={handleLogout} className={`${styles.button} ${styles.danger}`} disabled={loading}>
+              Logout
+            </button>
+          </div>
 
-        <button type="button" onClick={handleLogout} className={`${styles.button} ${styles.danger}`} disabled={loading}>
-          Logout
-        </button>
-      </div>
-
-      {otpContext && (
-        <OTPForm
-          key={otpContext.bookingId}
-          bookingId={bookingId}
-          expiresAt={otpContext.expiresAt}
-          onVerified={handleOtpVerified}
-          onExpired={handleOtpExpired}
-        />
-      )}
+          {otpContext && (
+            <OTPForm
+              key={otpContext.bookingId}
+              bookingId={bookingId}
+              expiresAt={otpContext.expiresAt}
+              onVerified={handleOtpVerified}
+              onExpired={handleOtpExpired}
+            />
+          )}
         </form>
       )}
     </>

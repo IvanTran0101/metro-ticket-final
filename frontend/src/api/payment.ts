@@ -1,10 +1,10 @@
 import { api } from "./client";
 
 export interface InitPaymentRequest {
-  tuition_id: string;
+  booking_id: string;
   amount: number;
-  term_no?: string;
-  student_id: string;
+  trip_id?: string;
+  pin: string;
 }
 
 export interface InitPaymentResponse {
