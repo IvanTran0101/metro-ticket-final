@@ -1,8 +1,11 @@
 import { api } from "./client";
 
 export interface InitPaymentRequest {
-  booking_id: string;
-  amount: number;
+<<<<<<< HEAD
+=======
+  trip_id?: string;
+  pin: string;
+>>>>>>> f85a9d8 (fix wrong timezone, update PIN frontend + backend(account, payment service))
 }
 
 export interface InitPaymentResponse {

@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Header
 from sqlalchemy import text
 from sqlalchemy.orm import Session
+import hashlib
 
 from account_service.app.db import get_db
 from account_service.app.schemas import (
@@ -8,6 +9,7 @@ from account_service.app.schemas import (
     LoginResponse,
     AccountResponse,
     BalanceUpdateRequest,
+    PinVerifyRequest,
 )
 from account_service.app.security import verify_password_hash
 
@@ -80,3 +82,19 @@ def balance_update(req: BalanceUpdateRequest, db: Session = Depends(get_db)):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
 
     return {"ok": True}
+
+@router.post("/internal/post/account/verify_pin")
+def verify_pin(req: PinVerifyRequest, db: Session = Depends(get_db)):
+    sql = text(
+        "SELECT pin_hash FROM accounts WHERE user_id = :uid"
+    )
+    row = db.execute(sql, {"uid": req.user_id}).mappings().first()
+
+    if not row: 
+        raise HTTPException(status_code= status.HTTP_404_NOT_FOUND, detail= "User not found")
+
+    hashed_input_pin = hashlib.sha256(req.pin.encode()).hexdigest()
+
+    if row["pin_hash"] != hashed_input_pin:
+        raise HTTPException(status_code = status.HTTP_401_UNAUTHORIZED, detail = "Invalid PIN")
+    return {"valid": True}

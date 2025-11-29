@@ -26,18 +26,30 @@ def search_trip(
     date: str | None = None,
     db: Session = Depends(get_db)
 ):
+    # Get current date and time
+    now = datetime.now()
+    current_date = now.date()
+    current_time = now.time()
+
+    # Base query: Only show Scheduled trips
     query = "SELECT * FROM trips WHERE status = 'Scheduled'"
     params = {}
+
+    # Filter out trips that have already departed
+    # Logic: (date_departure > current_date) OR (date_departure = current_date AND departure_time > current_time)
+    query += " AND (date_departure > :current_date OR (date_departure = :current_date AND departure_time > :current_time))"
+    params["current_date"] = current_date
+    params["current_time"] = current_time
 
     if from_station:
         query += " AND from_station_name = :from_station"
         params["from_station"] = from_station
     if to_station:
-        query += " AND to_station_name =: to_station"
+        query += " AND to_station_name = :to_station"
         params["to_station"] = to_station
     
     if date:
-        query += " AND date_departure =:date"
+        query += " AND date_departure = :date"
         params["date"] = date
     
     trips = db.execute(text(query), params).mappings().all()

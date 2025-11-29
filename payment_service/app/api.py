@@ -33,6 +33,10 @@ def init_payment(
     if not x_user_id:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,detail="Missing user context")
     
+    account_client = AccountClient()
+    if not account_client.verify_pin(x_user_id, req.pin):
+        raise HTTPException(status_code = status.HTTP_401_UNAUTHORIZED, detail= "Invalid PIN") 
+
     otp_client = OtpClient()
     email = x_user_email or "user@example.com"
     try:

@@ -20,6 +20,7 @@ USERS = [
         "user_id": "00000000-0000-0000-0000-000000000001",
         "username": "anhminh",  # you can login with this username
         "password_hash": "d48cb882ca5db13885c5d8f644904ba552b2218d1f808632a7a218b3053ea087",
+        "pin_hash": "8d969eef6ecad3c29a3a629280e686cf0c3f5d5a86aff3ca12020c923adc6c92",
         "full_name": "Tran Anh Minh",
         "phone_number": "0776966302",
         "email": "anhminht68@gmail.com",
@@ -29,6 +30,7 @@ USERS = [
         "user_id": "00000000-0000-0000-0000-000000000002",
         "username": "thanhvu",
         "password_hash": "d48cb882ca5db13885c5d8f644904ba552b2218d1f808632a7a218b3053ea087",
+        "pin_hash": "8d969eef6ecad3c29a3a629280e686cf0c3f5d5a86aff3ca12020c923adc6c92",
         "full_name": "Chau Thanh Vu",
         "phone_number": "0776966301",
         "email": "chauthanhvu24122007@gmail.com",
@@ -43,8 +45,8 @@ def seed() -> None:
             db.execute(
                 text(
                     """
-                    INSERT INTO accounts (user_id, username, password_hash, full_name, phone_number, email, balance)
-                    VALUES (:user_id, :username, :password_hash, :full_name, :phone_number, :email, :balance)
+                    INSERT INTO accounts (user_id, username, password_hash, pin_hash, full_name, phone_number, email, balance)
+                    VALUES (:user_id, :username, :password_hash, :pin_hash, :full_name, :phone_number, :email, :balance)
                     ON CONFLICT (username) DO NOTHING
                     """
                 ),
@@ -52,6 +54,7 @@ def seed() -> None:
                     "user_id": u["user_id"],
                     "username": u["username"],
                     "password_hash": u["password_hash"],
+                    "pin_hash": u["pin_hash"],
                     "full_name": u["full_name"],
                     "phone_number": u["phone_number"],
                     "email": u["email"],

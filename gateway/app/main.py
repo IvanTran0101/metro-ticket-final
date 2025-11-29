@@ -181,7 +181,7 @@ async def payment_history(request: Request) -> Response:
     return await _proxy(request, PAYMENT_URL, "get/payment/history", require_auth=True)
 
 # Booking
-@app.post("/booking/booking/trip_confirm")
+@app.post("/booking/trip_confirm")
 async def booking_confirm(request: Request) -> Response:
     return await _proxy(request, BOOKING_URL, "booking/post/trip_confirm", require_auth=True)
 

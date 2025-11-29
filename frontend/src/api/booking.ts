@@ -20,7 +20,7 @@ export interface BookingResponse {
 }
 
 export async function createBooking(body: BookingCreateRequest): Promise<BookingResponse> {
-  return api("booking/booking/trip_confirm", {
+  return api("booking/trip_confirm", {
     method: "POST",
     body,
     requireAuth: true,

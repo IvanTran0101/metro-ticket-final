@@ -23,3 +23,7 @@ class BalanceUpdateRequest(BaseModel):
     user_id: str
     amount: float
 
+class PinVerifyRequest(BaseModel):
+    user_id: str
+    pin: str
+

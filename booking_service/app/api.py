@@ -1,7 +1,7 @@
 import uuid
 import random
 import string
-from datetime import datetime
+from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, HTTPException, status, Header
 from sqlalchemy import text
 from sqlalchemy.orm import Session
@@ -53,7 +53,7 @@ def create_booking(
             )
             VALUES (
                 :bid, :tid, :uid, :seats, :fare, 
-                :total, 'Pending', :code, NOW()
+                :total, 'Pending', :code, :time
             )
             RETURNING created_at
         """
@@ -67,6 +67,7 @@ def create_booking(
             "fare": seat_fare,
             "total": total_amount,
             "code": booking_code,
+            "time": datetime.now(timezone.utc),
         }
 
     row = db.execute(sql,params).mappings().first()
@@ -80,7 +81,7 @@ def create_booking(
         total_amount=total_amount,
         status="Pending",
         booking_code=booking_code,
-        created_at=row["created_at"],
+        created_at=row["created_at"].replace(tzinfo=timezone.utc),
     )
 
 
@@ -101,9 +102,9 @@ def get_booking(booking_id: str, db: Session = Depends(get_db)):
         total_amount=row["total_amount"],
         status=row["status"],
         booking_code=row["booking_code"],
-        created_at=row["created_at"],
-        paid_at=row["paid_at"],
-        cancelled_at=row["cancelled_at"],
+        created_at=row["created_at"].replace(tzinfo=timezone.utc),
+        paid_at=row["paid_at"].replace(tzinfo=timezone.utc) if row["paid_at"] else None,
+        cancelled_at=row["cancelled_at"].replace(tzinfo=timezone.utc) if row["cancelled_at"] else None,
     )
 @router.post("/internal/post/booking/booking_update")
 def update_booking_status(

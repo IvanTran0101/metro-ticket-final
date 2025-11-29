@@ -7,6 +7,7 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 CREATE TABLE IF NOT EXISTS accounts (
     user_id        uuid        PRIMARY KEY,
     password_hash  text        NOT NULL,
+    pin_hash       text        NOT NULL,
     balance        numeric     NOT NULL,
     username       text        NOT NULL UNIQUE,
     full_name      text        NOT NULL,
