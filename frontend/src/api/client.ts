@@ -35,6 +35,19 @@ function authHeader(requireAuth?: boolean): Record<string, string> {
   return token ? { Authorization: `Bearer ${token}` } : {};
 }
 
+export class ApiError extends Error {
+  status: number;
+  statusText: string;
+  detail: any;
+  constructor(status: number, statusText: string, detail: any) {
+    super(`HTTP ${status}: ${statusText}${detail ? ` - ${JSON.stringify(detail)}` : ""}`);
+    this.name = "ApiError";
+    this.status = status;
+    this.statusText = statusText;
+    this.detail = detail;
+  }
+}
+
 export async function api<T = any>(path: string, opts: RequestOptions = {}): Promise<T> {
   const { method = "GET", headers, query, body, requireAuth = true } = opts;
   const url = buildUrl(path, query);
@@ -50,10 +63,15 @@ export async function api<T = any>(path: string, opts: RequestOptions = {}): Pro
   });
   if (!resp.ok) {
     let detail: any = undefined;
+    const ct = resp.headers.get("content-type") || "";
     try {
-      detail = await resp.json();
-    } catch {}
-    throw new Error(`HTTP ${resp.status}: ${resp.statusText}${detail ? ` - ${JSON.stringify(detail)}` : ""}`);
+      if (ct.includes("application/json")) {
+        detail = await resp.json();
+      } else {
+        detail = await resp.text();
+      }
+    } catch (e) {}
+    throw new ApiError(resp.status, resp.statusText, detail);
   }
   const ct = resp.headers.get("content-type") || "";
   if (ct.includes("application/json")) return (await resp.json()) as T;

@@ -1,34 +1,71 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
+import { useState, useEffect } from 'react'
 import './App.css'
+import LoginForm from './component/LoginForm.jsx'
+import HomePage from './component/HomePage.jsx'
+import SchedulerForm from './component/SchedulerForm.jsx'
+import PaymentForm from './component/PaymentForm.jsx'
+import PaymentHistoryForm from './component/PaymentHistoryForm.jsx'
 
 function App() {
-  const [count, setCount] = useState(0)
+  const [loggedIn, setLoggedIn] = useState(false)
+  const [view, setView] = useState("home") // 'home' | 'scheduler' | 'payment' | 'history'
+  const [bookingData, setBookingData] = useState(null)
+  const [viewHistory, setViewHistory] = useState(["home"])
+
+  // Handle browser back button
+  useEffect(() => {
+    const handlePopState = () => {
+      if (viewHistory.length > 1) {
+        const newHistory = viewHistory.slice(0, -1)
+        setViewHistory(newHistory)
+        setView(newHistory[newHistory.length - 1])
+        setBookingData(null)
+      }
+    }
+
+    window.addEventListener("popstate", handlePopState)
+    return () => window.removeEventListener("popstate", handlePopState)
+  }, [viewHistory])
+
+  const navigateTo = (newView: string) => {
+    setView(newView)
+    setViewHistory([...viewHistory, newView])
+    window.history.pushState(null, "", window.location.href)
+  }
+
+  if (!loggedIn) {
+    return (
+      <div className="app-root">
+        <LoginForm onLoggedIn={() => setLoggedIn(true)} />
+      </div>
+    )
+  }
 
   return (
-    <>
-      <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.tsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
+    <div className="app-root">
+      {view === "home" && (
+        <HomePage
+          onLoggedOut={() => { setLoggedIn(false); setView("home"); setBookingData(null); setViewHistory(["home"]) }}
+          onStartBooking={() => { navigateTo("scheduler"); setBookingData(null); }}
+          onViewPaymentHistory={() => { navigateTo("history"); }}
+        />
+      )}
+      {view === "scheduler" && (
+        <SchedulerForm 
+          onBookingConfirmed={(b: any) => { setBookingData(b); navigateTo("payment"); }} 
+        />
+      )}
+      {view === "payment" && (
+        <PaymentForm
+          booking={bookingData}
+          onLoggedOut={() => { setLoggedIn(false); setView("home"); setBookingData(null); setViewHistory(["home"]) }}
+          onBackToScheduler={() => { navigateTo("home"); setBookingData(null); }}
+        />
+      )}
+      {view === "history" && (
+        <PaymentHistoryForm />
+      )}
+    </div>
   )
 }
 

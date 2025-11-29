@@ -38,6 +38,7 @@
   flex-direction: column;
   font-weight: 500;
   font-size: 0.94rem;
+  text-align: left;
   color: rgba(0, 0, 0, 0.895);
   gap: 6px;
 }

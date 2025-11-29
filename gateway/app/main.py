@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import uuid
-from typing import Dict, Iterable
+from typing import Dict, Iterable, Optional
 
 import httpx
 from fastapi import FastAPI, Request, Response, HTTPException, status
@@ -89,7 +89,7 @@ async def _require_user(request: Request) -> str:
     return user_id
 
 
-async def _proxy(request: Request, base_url: str, tail: str, *, require_auth: bool = True) -> Response:
+async def _proxy(request: Request, base_url: str, tail: str, *, require_auth: bool = True, method: Optional[str] = None) -> Response:
     global _client
     assert _client is not None
 
@@ -178,18 +178,15 @@ async def payment_verify_otp(request: Request) -> Response:
 
 
 # Booking
-@app.post("/booking/trip_confirm")
+@app.post("/booking/booking/trip_confirm")
 async def booking_confirm(request: Request) -> Response:
     return await _proxy(request, BOOKING_URL, "booking/post/trip_confirm", require_auth=True)
 
-@app.get("/booking/{booking_id}")
+@app.get("/booking/booking/{booking_id}")
 async def booking_get(booking_id: str, request: Request) -> Response:
     return await _proxy(request, BOOKING_URL, f"get/booking/{booking_id}", require_auth=True)
 
-
-# Scheduler
+#Scheduler
 @app.get("/route/trips")
 async def route_trips(request: Request) -> Response:
     return await _proxy(request, SCHEDULER_URL, "get/route/trips", require_auth=True)
-
-

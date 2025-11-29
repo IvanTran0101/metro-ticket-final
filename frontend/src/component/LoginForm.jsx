@@ -16,8 +16,10 @@ export default function LoginForm({ onLoggedIn }) {
       await login({ username, password });
       onLoggedIn?.();
     } catch (err) {
-      setError(//err?.message || 
-        "Login failed");
+      // Show error message to help debugging (network/CORS/status)
+      console.error("Login error:", err);
+      const msg = err?.message || (err && String(err)) || "Login failed";
+      setError(msg);
     } finally {
       setLoading(false);
     }
@@ -25,7 +27,7 @@ export default function LoginForm({ onLoggedIn }) {
 
   return (
     <form className={styles.card} onSubmit={handleSubmit}>
-      <h2 className={styles.title}>Sign In</h2>
+      <h2 className={styles.title}>Login</h2>
 
       {error && <div className={styles.error}>{error}</div>}
 
