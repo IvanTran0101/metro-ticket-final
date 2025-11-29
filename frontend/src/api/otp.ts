@@ -1,12 +1,12 @@
 import { api } from "./client";
 
 export interface VerifyOtpRequest {
-  payment_id: string;
+  booking_id: string;
   otp_code: string;
 }
 
 export async function verifyOtp(body: VerifyOtpRequest): Promise<{ ok: boolean }>{
-  return api("/otp/otp/verify", {
+  return api("/payment/verify_otp", {
     method: "POST",
     body,
     requireAuth: true,

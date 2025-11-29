@@ -3,7 +3,7 @@ import { api } from "./client";
 export interface AccountMeResponse {
   ok: boolean;
   user_id: string;
-  full_name: string;
+  name: string;
   phone_number: string;
   balance: number;
   username: string;
