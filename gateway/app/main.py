@@ -176,6 +176,9 @@ async def payment_init(request: Request) -> Response:
 async def payment_verify_otp(request: Request) -> Response:
     return await _proxy(request, PAYMENT_URL, "post/payment/verify_otp", require_auth=True)
 
+@app.get("/payment/payments/history")
+async def payment_history(request: Request) -> Response:
+    return await _proxy(request, PAYMENT_URL, "get/payment/history", require_auth=True)
 
 # Booking
 @app.post("/booking/booking/trip_confirm")

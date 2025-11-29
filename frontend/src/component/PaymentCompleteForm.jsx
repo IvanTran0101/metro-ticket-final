@@ -8,13 +8,10 @@ export default function PaymentCompleteForm({
   paymentId,
   onBackToHome,
 }) {
-  // FIX: The 'me' object contains the snapshot of the user BEFORE payment.
-  // So 'originalBalance' is just the current balance in 'me'.
   const originalBalance = useMemo(() => {
     return Number(me?.balance ?? 0);
   }, [me?.balance]);
 
-  // FIX: New Balance is Original minus Payment
   const newBalance = useMemo(() => {
     const current = Number(me?.balance ?? 0);
     const deducted = Number(paymentAmount ?? 0);
