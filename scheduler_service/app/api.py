@@ -106,7 +106,7 @@ def lock_seat(req: SeatLockRequest, db: Session = Depends(get_db)):
 
     lock_key = f"lock:{req.trip_id}:{req.booking_id}"
 
-    expires_at = datetime.now() + timedelta(minutes=10)
+    expires_at = datetime.now() + timedelta(minutes=5)
 
     lock_data = {
         "trip_id": req.trip_id,
@@ -116,7 +116,7 @@ def lock_seat(req: SeatLockRequest, db: Session = Depends(get_db)):
         "expires_at": expires_at.isoformat()
     }
 
-    r.setex(lock_key, 600, json.dumps(lock_data))
+    r.setex(lock_key, 300, json.dumps(lock_data))
 
     return SeatLockResponse(
         trip_id = req.trip_id,
