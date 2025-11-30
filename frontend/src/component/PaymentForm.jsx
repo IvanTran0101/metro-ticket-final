@@ -1,8 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { getAccountMe } from "../api/account";
 import { initPayment } from "../api/payment";
-import { getBookingDetails } from "../api/booking";
-import { logout } from "../api/auth";
+import { getBookingDetails, cancelBooking } from "../api/booking";
 import styles from "./PaymentForm.module.css";
 import OTPForm from "./OTPForm";
 import PaymentCompleteForm from "./PaymentCompleteForm";
@@ -20,7 +19,6 @@ export default function PaymentForm({ onLoggedOut, booking = null, onBackToSched
   const [msg, setMsg] = useState("");
   const [otpContext, setOtpContext] = useState(null);
   const [bookingDetails, setBookingDetails] = useState(null);
-  const [confirmed, setConfirmed] = useState(false);
   const [paymentComplete, setPaymentComplete] = useState(false);
   const [completedPaymentId, setCompletedPaymentId] = useState(null);
   const [previousBalance, setPreviousBalance] = useState(0);
@@ -67,6 +65,25 @@ export default function PaymentForm({ onLoggedOut, booking = null, onBackToSched
       setBookingId("");
       setBookingAmount("");
     } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleCancel() {
+    if (!bookingId) return;
+    if (!window.confirm("Are you sure you want to cancel this booking?")) return;
+
+    setLoading(true);
+    setMsg("");
+    try {
+      await cancelBooking({ booking_id: bookingId });
+      setMsg("Booking cancelled successfully.");
+      // Wait briefly then go back
+      setTimeout(() => {
+        if (onBackToScheduler) onBackToScheduler();
+      }, 1500);
+    } catch (e) {
+      setMsg(e.message || "Failed to cancel booking");
       setLoading(false);
     }
   }
@@ -274,6 +291,16 @@ export default function PaymentForm({ onLoggedOut, booking = null, onBackToSched
               >
                 {loading ? "Processing..." : "Confirm & Get OTP"}
               </button>
+
+              <button
+              className={`${styles.button} ${styles.danger}`}
+              type="button"
+              disabled={loading}
+              onClick={handleCancel}
+              style={{ marginRight: '10px', flex: 1 }}
+            >
+              Cancel Booking
+            </button>
           </div>
 
           {otpContext && (

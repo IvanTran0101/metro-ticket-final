@@ -25,3 +25,6 @@ class BookingResponse(BaseModel):
 class BookingUpdateRequest(BaseModel):
     booking_id: str
     status: str
+
+class BookingCancelRequest(BaseModel):
+    booking_id: str

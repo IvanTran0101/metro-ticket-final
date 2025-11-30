@@ -5,6 +5,10 @@ export interface BookingCreateRequest {
   seats_reserved: number;
 }
 
+export interface BookingCancelRequest {
+  booking_id: string;
+}
+
 export interface BookingResponse {
   booking_id: string;
   trip_id: string;
@@ -30,6 +34,14 @@ export async function createBooking(body: BookingCreateRequest): Promise<Booking
 export async function getBookingDetails(bookingId: string): Promise<BookingResponse> {
   return api(`booking/booking/${bookingId}`, {
     method: "GET",
+    requireAuth: true,
+  });
+}
+
+export async function cancelBooking(body: BookingCancelRequest): Promise<BookingResponse> {
+  return api("booking/post/cancel", {
+    method: "POST",
+    body,
     requireAuth: true,
   });
 }

@@ -23,3 +23,7 @@ class SchedulerClient:
     def get_trip(self, trip_id: str) -> Dict[str, Any]:
         resp = self._client.get(f"/internal/get/route/trip/{trip_id}")
         return resp.json()
+    
+    def seat_canceled(self, trip_id: str, booking_id: str) -> Dict[str, Any]:
+        resp = self._client.post(f"/internal/post/route/seat_canceled?trip_id={trip_id}&booking_id={booking_id}")
+        return resp.json()

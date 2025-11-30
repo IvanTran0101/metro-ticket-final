@@ -11,6 +11,7 @@ from booking_service.app.schemas import (
     BookingCreateRequest,
     BookingResponse,
     BookingUpdateRequest,
+    BookingCancelRequest
 )
 
 from booking_service.app.clients.scheduler_client import SchedulerClient
@@ -166,3 +167,53 @@ def unlock_booking(booking_id: str, db: Session = Depends(get_db)):
          raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Booking not found")
 
     return {"trip_id": row["trip_id"]}
+
+@router.post("/booking/post/cancel", response_model=BookingResponse)
+def cancel_user_booking(
+    req: BookingCancelRequest,
+    x_user_id: str | None = Header(default=None, alias="X-User-Id"),
+    db: Session = Depends(get_db)
+):
+    if not x_user_id:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Missing user context")
+
+    sql_check = text("SELECT * FROM bookings WHERE booking_id = :bid AND user_id = :uid")
+    booking = db.execute(sql_check, {"bid": req.booking_id, "uid": x_user_id}).mappings().first()
+
+    if not booking:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Booking not found or access denied")
+
+    if booking["status"] == "Cancelled":
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Booking is already cancelled")
+
+    scheduler_client = SchedulerClient()
+    try:
+        scheduler_client.seat_canceled(booking["trip_id"], req.booking_id) 
+    except Exception as e:
+        print(f"Warning: Failed to unlock seats in scheduler: {e}")
+
+    sql_update = text(
+        """
+        UPDATE bookings
+        SET status = 'Cancelled', cancelled_at = NOW()
+        WHERE booking_id = :bid
+        RETURNING *
+        """
+    )
+    
+    updated_row = db.execute(sql_update, {"bid": req.booking_id}).mappings().first()
+    db.commit()
+
+    return BookingResponse(
+        booking_id=str(updated_row["booking_id"]),
+        trip_id=str(updated_row["trip_id"]),
+        user_id=str(updated_row["user_id"]),
+        seats=updated_row["seats"],
+        seat_fare=updated_row["seat_fare"],
+        total_amount=updated_row["total_amount"],
+        status=updated_row["status"],
+        booking_code=updated_row["booking_code"],
+        created_at=updated_row["created_at"].replace(tzinfo=timezone.utc),
+        paid_at=updated_row["paid_at"].replace(tzinfo=timezone.utc) if updated_row["paid_at"] else None,
+        cancelled_at=updated_row["cancelled_at"].replace(tzinfo=timezone.utc) if updated_row["cancelled_at"] else None,
+    )
