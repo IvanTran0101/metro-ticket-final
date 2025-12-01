@@ -189,6 +189,10 @@ async def booking_confirm(request: Request) -> Response:
 async def booking_get(booking_id: str, request: Request) -> Response:
     return await _proxy(request, BOOKING_URL, f"get/booking/{booking_id}", require_auth=True)
 
+@app.post("/booking/post/cancel")
+async def booking_cancel(request: Request) -> Response:
+    return await _proxy(request, BOOKING_URL, "booking/post/cancel", require_auth=True)
+
 #Scheduler
 @app.post("/route/trips")
 async def route_trips(request: Request) -> Response:

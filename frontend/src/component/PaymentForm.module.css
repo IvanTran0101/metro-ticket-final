@@ -143,10 +143,10 @@
 
 /* Button Container */
 .buttonGroup {
-  display: flex;
+  display: grid;
   grid-template-columns: 1fr 1fr;
-  justify-content: center;  
-  align-items: center;
+  /* justify-content: center;  
+  align-items: center; */
   gap: 12px;
   margin-top: 8px;
   border: none;
