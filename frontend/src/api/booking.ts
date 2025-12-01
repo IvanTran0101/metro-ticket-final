@@ -19,10 +19,15 @@ export interface BookingResponse {
   cancelled_at: string | null;
 }
 
-export async function createBooking(body: BookingCreateRequest): Promise<BookingResponse> {
+export async function createBooking(body: BookingCreateRequest, idempotencyKey?: string): Promise<BookingResponse> {
+  const headers: Record<string, string> = {};
+  if (idempotencyKey){
+    headers["Idempotency-Key"] = idempotencyKey;
+  }
   return api("booking/trip_confirm", {
     method: "POST",
     body,
+    headers,
     requireAuth: true,
   });
 }

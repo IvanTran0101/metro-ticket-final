@@ -25,6 +25,8 @@ export default function PaymentForm({ onLoggedOut, booking = null, onBackToSched
   const [completedPaymentId, setCompletedPaymentId] = useState(null);
   const [previousBalance, setPreviousBalance] = useState(0);
   const [pin, setPin] = useState("");
+  const [idempotencyKey, setIdempotencyKey] = useState(crypto.randomUUID());
+  
 
   useEffect(() => {
     (async () => {
@@ -73,6 +75,7 @@ export default function PaymentForm({ onLoggedOut, booking = null, onBackToSched
 
   async function handleGetOtp(e) {
     e.preventDefault();
+    
     setMsg("");
 
     const balance = Number(me?.balance ?? 0);
@@ -106,10 +109,11 @@ export default function PaymentForm({ onLoggedOut, booking = null, onBackToSched
           pin: pin,
         };
 
-      const res = await initPayment(payload);
+      const res = await initPayment(payload, idempotencyKey);
       const expiresAt = Date.now() + OTP_TTL_MS;
       setOtpContext({ paymentId: res.payment_id, expiresAt });
       setMsg(`OTP sent for payment ${res.payment_id}. Enter it below within ${Math.floor(OTP_TTL_MS / 60000)} minutes.`);
+      setIdempotencyKey(crypto.randomUUID());
     } catch (e) {
       setMsg(e?.message || "Failed to start payment");
     } finally {

@@ -14,6 +14,7 @@ export default function SchedulerForm({ onBookingConfirmed }) {
   const [error, setError] = useState("");
   const [seats, setSeats] = useState(1);
   const [booking, setBooking] = useState(null);
+  const [idempotencyKey, setIdempotencyKey] = useState(crypto.randomUUID());
 
   async function handleSearch(e) {
     e?.preventDefault();
@@ -68,9 +69,10 @@ export default function SchedulerForm({ onBookingConfirmed }) {
       const res = await createBooking({
         trip_id: selected.trip_id,
         seats_reserved: Number(seats)
-      });
+      }, idempotencyKey);
       setBooking(res);
       setError("");
+      setIdempotencyKey(crypto.randomUUID());
       // inform parent to navigate to payment with booking data
       try {
         onBookingConfirmed?.(res);

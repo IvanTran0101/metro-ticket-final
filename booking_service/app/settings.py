@@ -10,4 +10,5 @@ class Settings(BaseSettings):
     # Service URLs
     SCHEDULER_SERVICE_URL: str = os.getenv("SCHEDULER_SERVICE_URL", "http://scheduler_service:8080")
 
+    REDIS_URL: str = os.getenv("REDIS_URL", "redis://redis:6379/0")
 settings = Settings()

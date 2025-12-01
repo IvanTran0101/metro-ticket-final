@@ -1,4 +1,8 @@
+from email.policy import default
 import uuid
+import json
+import redis 
+from payment_service.app.settings import settings
 from datetime import datetime
 from fastapi import APIRouter, HTTPException, status, Header, Depends
 from sqlalchemy import text
@@ -22,16 +26,24 @@ from payment_service.app.client.notification_client import NotificationClient
 from payment_service.app.client.otp_client import OtpClient
 
 router = APIRouter()
-
+r = redis.Redis.from_url(settings.REDIS_URL, decode_responses= True)
 @router.post("/post/payment/payment_init", response_model=PaymentInitResponse)
 def init_payment(
     req: PaymentInitRequest,
+    idempotency_key: str | None = Header(default=None, alias="Idempotency-Key"),
     x_user_id: str | None = Header(default=None, alias="X-User-Id"),
     x_user_email: str | None = Header(default=None, alias="X-User-Email"),
     db: Session = Depends(get_db)
 ):
     if not x_user_id:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,detail="Missing user context")
+
+    if idempotency_key:
+        cache_key = f"idempotency:{idempotency_key}"
+        cache_data = r.get(cache_key)
+        if cache_data:
+            print(f"Idempotency hit: {idempotency_key}")
+            return PaymentInitResponse(**json.loads(cache_data))
     
     account_client = AccountClient()
     if not account_client.verify_pin(x_user_id, req.pin):
@@ -44,7 +56,12 @@ def init_payment(
     except Exception:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail = "Failed to generate OTP")
 
-    return PaymentInitResponse(booking_id=req.booking_id, message="OTP sent to email")
+    response = PaymentInitResponse(booking_id=req.booking_id, message="OTP sent to email")
+
+    if idempotency_key:
+        cache_key = f"idempotency: {idempotency_key}"
+        r.setex(cache_key, 86400, response.json())
+    return response
 
 @router.post("/post/payment/verify_otp", response_model=PaymentVerifyResponse)
 def verify_otp(
@@ -145,7 +162,7 @@ def get_payment_history(
         rec = {
             "payment_id": str(r["payment_id"]),
             "booking_id": str(r["booking_id"]),
-            "user_id": str(["user_id"]),
+            "user_id": str(r["user_id"]),
             "amount": float(r["amount"]),
             "complete_at": r["complete_at"],
             "expires_at": r["expires_at"],  

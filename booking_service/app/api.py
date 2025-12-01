@@ -1,11 +1,14 @@
+from email.policy import default
 import uuid
 import random
 import string
+import json
+import redis 
 from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, HTTPException, status, Header
 from sqlalchemy import text
 from sqlalchemy.orm import Session
-
+from booking_service.app.settings import settings
 from booking_service.app.db import get_db
 from booking_service.app.schemas import (
     BookingCreateRequest,
@@ -16,13 +19,22 @@ from booking_service.app.schemas import (
 from booking_service.app.clients.scheduler_client import SchedulerClient
 
 router = APIRouter()
+r = redis.Redis.from_url(settings.REDIS_URL, decode_responses= True)
 
 @router.post("/booking/post/trip_confirm", response_model=BookingResponse)
 def create_booking(
     req: BookingCreateRequest,
+    idempotency_key: str| None = Header(default= None, alias="Idempotency-Key"),
     x_user_id: str | None = Header(default=None, alias="X-User-Id"),
     db: Session = Depends(get_db)
 ):
+    if idempotency_key:
+        cache_key = f"idempotency:{idempotency_key}"
+        cached_data = r.get(cache_key)
+        if cached_data:
+            print(f"Idempotency hit:{idempotency_key}")
+            return BookingResponse(**json.loads(cached_data))
+
     MAX_PENDING_BOOKINGS = 2    
     MAX_PENDING_SEATS = 10        
     TIMEOUT_MINUTES = 5
@@ -90,7 +102,7 @@ def create_booking(
 
     row = db.execute(sql,params).mappings().first()
     db.commit()
-    return BookingResponse(
+    response= BookingResponse(
         booking_id=booking_id,
         trip_id=req.trip_id,
         user_id=x_user_id,
@@ -101,7 +113,10 @@ def create_booking(
         booking_code=booking_code,
         created_at=row["created_at"].replace(tzinfo=timezone.utc),
     )
-
+    if idempotency_key:
+        cache_key = f"idempotency:{idempotency_key}"
+        r.setex(cache_key, 86400, response.json())
+    return response
 
 @router.get("/get/booking/{booking_id}", response_model=BookingResponse)
 def get_booking(booking_id: str, db: Session = Depends(get_db)):

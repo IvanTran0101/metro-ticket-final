@@ -22,10 +22,16 @@ export interface PaymentHistoryResponse {
   status: string;
 }
 
-export async function initPayment(body: InitPaymentRequest): Promise<InitPaymentResponse> {
+export async function initPayment(payload: InitPaymentRequest, idempotencyKey?: string): Promise<InitPaymentResponse> {
+  const headers: Record<string, string> = {};
+  if (idempotencyKey){
+    headers["Idempotency-Key"] = idempotencyKey;
+  } 
+
   return api<InitPaymentResponse>("/payment/payments/init", {
     method: "POST",
-    body,
+    body: payload,
+    headers: headers,
     requireAuth: true,
   });
 }
