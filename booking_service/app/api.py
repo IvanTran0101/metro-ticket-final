@@ -37,8 +37,7 @@ def create_booking(
             return BookingResponse(**json.loads(cached_data))
 
     MAX_PENDING_BOOKINGS = 2    
-    MAX_PENDING_SEATS = 10        
-    TIMEOUT_MINUTES = 5
+    MAX_PENDING_SEATS = 10    
 
     if not x_user_id:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Missing user context")
@@ -55,7 +54,7 @@ def create_booking(
         raise HTTPException(status_code=status.HTTP_429_TOO_MANY_REQUESTS, detail="You booked too many seats.")
 
     if pending_count >= MAX_PENDING_BOOKINGS:
-        raise HTTPException(status_code=status.HTTP_429_TOO_MANY_REQUESTS, detail="You already have 2 pending bookings. Please wait {TIMEOUT_MINUTES} minutes before creating a new one.")
+        raise HTTPException(status_code=status.HTTP_429_TOO_MANY_REQUESTS, detail="You already have 2 pending bookings. Please wait 5 minutes before creating a new one.")
     
     booking_id = str(uuid.uuid4())
     booking_code = "".join(random.choices(string.ascii_uppercase + string.digits, k = 6))
