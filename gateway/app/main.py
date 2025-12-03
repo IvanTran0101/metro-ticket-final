@@ -156,44 +156,60 @@ async def health() -> Dict[str, str]:
 
 # ---- Explicit reverse-proxy endpoints (as requested) ----
 
-# Authentication
-@app.post("/auth/authentication/login")
-async def auth_login(request: Request) -> Response:
-    return await _proxy(request, AUTH_URL, "post/authentication/login", require_auth=False)
 
 
-@app.get("/account/accounts/me")
+# ... (Phần đầu giữ nguyên)
+
+# ---- CẬP NHẬT CÁC ROUTE MỚI ----
+
+# 1. Scheduler (Hạ tầng & Giá)
+@app.get("/scheduler/stations")
+async def get_stations(request: Request) -> Response:
+    return await _proxy(request, SCHEDULER_URL, "stations", require_auth=True)
+
+@app.get("/scheduler/lines")
+async def get_lines(request: Request) -> Response:
+    return await _proxy(request, SCHEDULER_URL, "lines", require_auth=True)
+
+@app.post("/scheduler/routes/search")
+async def search_route(request: Request) -> Response:
+    return await _proxy(request, SCHEDULER_URL, "routes/search", require_auth=True)
+
+@app.get("/scheduler/stations/{station_id}/next-trains")
+async def next_trains(station_id: str, request: Request) -> Response:
+    return await _proxy(request, SCHEDULER_URL, f"stations/{station_id}/next-trains", require_auth=True)
+
+# 2. Journey & Ticket (Thay thế Booking cũ)
+@app.post("/booking/ticket/purchase")
+async def purchase_ticket(request: Request) -> Response:
+    return await _proxy(request, BOOKING_URL, "ticket/purchase", require_auth=True)
+
+@app.get("/booking/history")
+async def journey_history(request: Request) -> Response:
+    return await _proxy(request, BOOKING_URL, "history", require_auth=True)
+
+# 3. Gate Simulator (Cổng soát vé)
+@app.post("/booking/gate/check-in")
+async def gate_check_in(request: Request) -> Response:
+    return await _proxy(request, BOOKING_URL, "gate/check-in", require_auth=False)
+
+@app.post("/booking/gate/check-out")
+async def gate_check_out(request: Request) -> Response:
+    return await _proxy(request, BOOKING_URL, "gate/check-out", require_auth=False)
+
+@app.post("/booking/gate/pay-penalty")
+async def pay_penalty(request: Request) -> Response:
+    return await _proxy(request, BOOKING_URL, "gate/pay-penalty", require_auth=False)
+
+# 4. Payment & Account
+@app.get("/payment/transactions")
+async def get_transactions(request: Request) -> Response:
+    return await _proxy(request, PAYMENT_URL, "transactions", require_auth=True)
+
+@app.get("/account/me") # Lưu ý URL ngắn gọn hơn
 async def account_me(request: Request) -> Response:
     return await _proxy(request, ACCOUNT_URL, "internal/get/account/me", require_auth=True)
 
-
-# Payment
-@app.post("/payment/payments/init")
-async def payment_init(request: Request) -> Response:
-    return await _proxy(request, PAYMENT_URL, "post/payment/payment_init", require_auth=True)
-
-@app.post("/payment/verify_otp")
-async def payment_verify_otp(request: Request) -> Response:
-    return await _proxy(request, PAYMENT_URL, "post/payment/verify_otp", require_auth=True)
-
-@app.get("/payment/payments/history")
-async def payment_history(request: Request) -> Response:
-    return await _proxy(request, PAYMENT_URL, "get/payment/history", require_auth=True)
-
-# Booking
-@app.post("/booking/trip_confirm")
-async def booking_confirm(request: Request) -> Response:
-    return await _proxy(request, BOOKING_URL, "booking/post/trip_confirm", require_auth=True)
-
-@app.get("/booking/booking/{booking_id}")
-async def booking_get(booking_id: str, request: Request) -> Response:
-    return await _proxy(request, BOOKING_URL, f"get/booking/{booking_id}", require_auth=True)
-
-@app.post("/booking/post/cancel")
-async def booking_cancel(request: Request) -> Response:
-    return await _proxy(request, BOOKING_URL, "booking/post/cancel", require_auth=True)
-
-#Scheduler
-@app.post("/route/trips")
-async def route_trips(request: Request) -> Response:
-    return await _proxy(request, SCHEDULER_URL, "post/route/trips", require_auth=True)
+@app.post("/auth/login")
+async def auth_login(request: Request) -> Response:
+    return await _proxy(request, AUTH_URL, "post/authentication/login", require_auth=False)

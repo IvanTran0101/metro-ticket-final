@@ -6,12 +6,12 @@ from typing import Generator
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
 
-from booking_service.app.settings import settings
+from journey_service.app.settings import settings
 
 
 # Create SQLAlchemy engine
 engine = create_engine(
-    settings.BOOKING_DATABASE_URL,
+    settings.JOURNEY_DATABASE_URL,
     pool_pre_ping=True,
     pool_size=settings.DB_POOL_SIZE,
     echo=settings.DB_ECHO,

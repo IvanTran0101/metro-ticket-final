@@ -1,8 +1,8 @@
 from fastapi import FastAPI
 
-from booking_service.app.api import router
+from journey_service.app.api import router
 
-app = FastAPI(title="Booking Service")
+app = FastAPI(title="Journey Service")
 
 app.include_router(router)
 

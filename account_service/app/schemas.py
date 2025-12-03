@@ -1,29 +1,39 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, EmailStr, Field
+from typing import Optional
 
-
+# --- 1. LOGIN & AUTH ---
 class LoginRequest(BaseModel):
     username: str
-    password_hash: str
-
+    password: str # Plain text password từ client gửi lên
 
 class LoginResponse(BaseModel):
-    userId: str
-    claims: dict[str, str]
+    user_id: str
+    access_token: str
+    token_type: str = "bearer"
+    expires_in: int
 
-
+# --- 2. ACCOUNT INFO ---
 class AccountResponse(BaseModel):
-    userId: str
-    name: str
+    user_id: str
+    username: str
+    full_name: str
     email: str
+    phone_number: str | None = None
     balance: float
-    phone_number: str
+    passenger_type: str  # 'STANDARD', 'STUDENT', 'ELDERLY'
 
+# --- 3. INTERNAL ACTIONS (Dành cho Journey/Payment Service gọi) ---
 
-class BalanceUpdateRequest(BaseModel):
+class DeductionRequest(BaseModel):
     user_id: str
-    amount: float
+    amount: float = Field(..., gt=0, description="Số tiền cần trừ")
+    description: str | None = "Thanh toán vé tàu"
 
-class PinVerifyRequest(BaseModel):
+class TopUpRequest(BaseModel):
     user_id: str
-    pin: str
+    amount: float = Field(..., gt=0, description="Số tiền nạp")
 
+class BalanceOperationResponse(BaseModel):
+    ok: bool
+    new_balance: float
+    message: str

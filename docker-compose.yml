@@ -33,14 +33,14 @@ services:
       - pgdata_payment:/var/lib/postgresql/data
       - ./payment_service/db/migrations:/docker-entrypoint-initdb.d
 
-  postgres_booking:
+  postgres_journey:
     image: postgres:15
     environment:
-      POSTGRES_USER: booking_user
-      POSTGRES_PASSWORD: booking_pass
-      POSTGRES_DB: booking_db
+      POSTGRES_USER: journey_user
+      POSTGRES_PASSWORD: journey_pass
+      POSTGRES_DB: journey_db
     healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U booking_user -d booking_db" ]
+      test: [ "CMD-SHELL", "pg_isready -U journey_user -d journey_db" ]
       interval: 5s
       timeout: 3s
       retries: 10
@@ -48,7 +48,7 @@ services:
       - "5434:5432"
     volumes:
       - pgdata_booking:/var/lib/postgresql/data
-      - ./booking_service/db/migrations:/docker-entrypoint-initdb.d
+      - ./journey_service/db/migrations:/docker-entrypoint-initdb.d
 
   postgres_scheduler:
     image: postgres:15
@@ -116,13 +116,12 @@ services:
     ports:
       - "8083:8080"
 
-  booking_service:
+  journey_service:
     build:
       context: .
-      dockerfile: booking_service/Dockerfile
+      dockerfile: journey_service/Dockerfile
     environment:
-      BOOKING_DATABASE_URL: "postgresql+psycopg2://booking_user:booking_pass@postgres_booking:5432/booking_db"
-      HOLD_EXPIRES_MIN: "15"
+      JOURNEY_DATABASE_URL: "postgresql+psycopg2://journey_user:journey_pass@postgres_journey:5432/journey_db"
     depends_on:
       postgres_booking:
         condition: service_healthy
@@ -187,7 +186,7 @@ services:
       JWT_ALG: "HS256"
       ACCOUNT_SERVICE_URL: "http://account_service:8080"
       PAYMENT_SERVICE_URL: "http://payment_service:8080"
-      BOOKING_SERVICE_URL: "http://booking_service:8080"
+      JOURNEY_SERVICE_URL: "http://journey_service:8080"
       OTP_SERVICE_URL: "http://otp_service:8080"
       NOTIFICATION_SERVICE_URL: "http://notification_service:8080"
       AUTHENTICATION_SERVICE_URL: "http://authentication_service:8080"

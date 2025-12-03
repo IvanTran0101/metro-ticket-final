@@ -1,12 +1,9 @@
 from pydantic import BaseModel
 from typing import Optional
 
-class SendOTPRequest(BaseModel):
+class SendRecieptRequest(BaseModel):
+    user_id: str
     email: str
-    booking_id: str
-    otp_code: str
-    
-class SendReceiptRequest(BaseModel):
-    email: str
-    payment_id: str
     amount: float
+    journey_code: str
+    date: str
