@@ -17,7 +17,7 @@ class TransactionResponse(BaseModel):
     amount:float
     type: str
     description: Optional[str]
-    created_at: datetime
+    created_at: datetime.datetime
 
     journey_id: Optional[str]
     

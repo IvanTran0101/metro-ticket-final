@@ -47,7 +47,7 @@ services:
     ports:
       - "5434:5432"
     volumes:
-      - pgdata_booking:/var/lib/postgresql/data
+      - pgdata_journey:/var/lib/postgresql/data
       - ./journey_service/db/migrations:/docker-entrypoint-initdb.d
 
   postgres_scheduler:
@@ -123,25 +123,12 @@ services:
     environment:
       JOURNEY_DATABASE_URL: "postgresql+psycopg2://journey_user:journey_pass@postgres_journey:5432/journey_db"
     depends_on:
-      postgres_booking:
+      postgres_journey:
         condition: service_healthy
     ports:
       - "8084:8080"
 
-  otp_service:
-    build:
-      context: .
-      dockerfile: otp_service/Dockerfile
-    environment:
-      OTP_TTL_SEC: "300"
-      OTP_LENGTH: "6"
-      REDIS_URL: "redis://redis:6379/0"
-    depends_on:
-      redis:
-        condition: service_healthy
-    ports:
-      - "8085:8080"
-
+  
   notification_service:
     build:
       context: .
@@ -187,7 +174,6 @@ services:
       ACCOUNT_SERVICE_URL: "http://account_service:8080"
       PAYMENT_SERVICE_URL: "http://payment_service:8080"
       JOURNEY_SERVICE_URL: "http://journey_service:8080"
-      OTP_SERVICE_URL: "http://otp_service:8080"
       NOTIFICATION_SERVICE_URL: "http://notification_service:8080"
       AUTHENTICATION_SERVICE_URL: "http://authentication_service:8080"
       SCHEDULER_SERVICE_URL: "http://scheduler_service:8080"
@@ -212,5 +198,5 @@ services:
 volumes:
   pgdata_account:
   pgdata_payment:
-  pgdata_booking:
+  pgdata_journey:
   pgdata_scheduler:

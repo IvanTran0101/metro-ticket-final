@@ -1,5 +1,4 @@
-from dataclasses import Field
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from datetime import datetime
 from typing import Optional
 
@@ -23,7 +22,7 @@ class GateRequest(BaseModel):
 class GateResponse(BaseModel):
     ok: bool
     message: str
-    gate_action str = "OPEN" #OPEN, STOP
+    gate_action: str = "OPEN" #OPEN, STOP
 
 class PenaltyPaymentRequest(BaseModel):
     journey_code: str
@@ -34,8 +33,8 @@ class PenaltyPaymentRequest(BaseModel):
 class JourneyHistoryItem(BaseModel):
     journey_id: str
     journey_code: str
-    check_in_station: str
-    check_out_station: Optional[str]
+    check_in_station_id: str
+    check_out_station_id: Optional[str]
     fare_amount: float
     status: str
     create_at: datetime

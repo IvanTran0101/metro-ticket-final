@@ -1,7 +1,7 @@
 from pydantic import BaseModel
 from typing import Optional
 
-class SendRecieptRequest(BaseModel):
+class SendReceiptRequest(BaseModel):
     user_id: str
     email: str
     amount: float

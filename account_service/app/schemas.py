@@ -4,13 +4,11 @@ from typing import Optional
 # --- 1. LOGIN & AUTH ---
 class LoginRequest(BaseModel):
     username: str
-    password: str # Plain text password từ client gửi lên
+    password_hash: str
 
 class LoginResponse(BaseModel):
-    user_id: str
-    access_token: str
-    token_type: str = "bearer"
-    expires_in: int
+    userId: str
+    claims: dict
 
 # --- 2. ACCOUNT INFO ---
 class AccountResponse(BaseModel):
@@ -37,3 +35,12 @@ class BalanceOperationResponse(BaseModel):
     ok: bool
     new_balance: float
     message: str
+
+# FIX: Bổ sung 2 class thiếu
+class PinVerifyRequest(BaseModel):
+    user_id: str
+    pin: str
+
+class BalanceUpdateRequest(BaseModel):
+    user_id: str
+    amount: float

@@ -16,45 +16,45 @@ export default function LoginForm({ onLoggedIn }) {
       await login({ username, password });
       onLoggedIn?.();
     } catch (err) {
-      // Show error message to help debugging (network/CORS/status)
       console.error("Login error:", err);
-      const msg = err?.message || (err && String(err)) || "Login failed";
-      setError(msg);
+      setError(err.message || "Login failed");
     } finally {
       setLoading(false);
     }
   }
 
   return (
-    <form className={styles.card} onSubmit={handleSubmit}>
-      <h2 className={styles.title}>Login</h2>
+    <div className={styles.container}>
+      <form className={styles.card} onSubmit={handleSubmit}>
+        <h2 className={styles.title}>MetroFlow Login</h2>
 
-      {error && <div className={styles.error}>{error}</div>}
+        {error && <div className={styles.error}>{error}</div>}
 
-      <label className={styles.label}>
-        Username
-        <input
-          className={styles.input}
-          value={username}
-          onChange={(e) => setUsername(e.target.value)}
-          required
-        />
-      </label>
+        <div className={styles.field}>
+          <label>Username</label>
+          <input
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
+            required
+            placeholder="Enter username"
+          />
+        </div>
 
-      <label className={styles.label}>
-        Password
-        <input
-          className={styles.input}
-          type="password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          required
-        />
-      </label>
+        <div className={styles.field}>
+          <label>Password</label>
+          <input
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+            placeholder="Enter password"
+          />
+        </div>
 
-      <button className={styles.button} type="submit" disabled={loading}>
-        {loading ? "Signing in..." : "Login"}
-      </button>
-    </form>
+        <button type="submit" disabled={loading} className={styles.button}>
+          {loading ? "Signing in..." : "Sign In"}
+        </button>
+      </form>
+    </div>
   );
 }

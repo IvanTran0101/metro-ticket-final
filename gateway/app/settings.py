@@ -19,7 +19,7 @@ class Settings(BaseSettings):
     OTP_SERVICE_URL: str = Field(default="http://otp_service:8080")
     NOTIFICATION_SERVICE_URL: str = Field(default="http://notification_service:8080")
     AUTHENTICATION_SERVICE_URL: str = Field(default="http://authentication_service:8080")
-    BOOKING_SERVICE_URL: str = Field(default="http://booking_service:8080")
+    JOURNEY_SERVICE_URL: str = Field(default="http://journey_service:8080")
     SCHEDULER_SERVICE_URL: str = Field(default="http://scheduler_service:8080")
 
     # CORS & HTTP client

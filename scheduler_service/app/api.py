@@ -44,7 +44,7 @@ def _calculate_fare_logic(db: Session, from_station: str, to_station: str) -> di
         SELECT
             ls1.line_id,
             ABS(ls1.distance_km - ls2.distance_km) as distance,
-            ABS(ls1.station_order - ls2.station__order) as stops
+            ABS(ls1.station_order - ls2.station_order) as stops
         FROM line_stations ls1
         JOIN line_stations ls2 ON ls1.line_id = ls2.line_id
         WHERE ls1.station_id = :s1 AND ls2.station_id = :s2
@@ -96,7 +96,7 @@ def search_route(req: RouteSearchRequest, db: Session = Depends(get_db)):
         distace_km = round(data["distance"], 1),
         standard_fare = data["total_fare"],
         estimated_time_mins = est_time,
-        route_description = f"Moving on {data["line_id"]}"
+        route_description = f"Moving on {data['line_id']}"
     )
 
 @router.post("/internal/calculate-fare", response_model = InternalFareResponse)
@@ -112,7 +112,7 @@ def internal_caculate_fare(req: InternalFareRequest, db: Session = Depends(get_d
 
     return InternalFareResponse(
         base_fare = data["base_fare"],
-        distance_fare = data["total"] - data["base_fare"],
+        distance_fare = data["total_fare"] - data["base_fare"],
         total_amount = final_fare,
         currency= "VND"
     )

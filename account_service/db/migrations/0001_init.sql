@@ -16,13 +16,14 @@ CREATE TABLE IF NOT EXISTS accounts (
     passenger_type varchar(20) DEFAULT 'STANDARD' -- STANDARD, STUDENT, ELDERLY
 );
 
-INSERT INTO accounts (user_id, username, password_hash, full_name, email, balance, passenger_type)
+INSERT INTO accounts (user_id, username, password_hash, full_name, email, pin_hash, balance, passenger_type)
 VALUES (
     '00000000-0000-0000-0000-000000000001', 
     'ivan_student', 
     'hash_string_here', 
     'Ivan Tran', 
     'ivan@example.com', 
+    '123456',
     200000, 
     'STUDENT'
 ) ON CONFLICT DO NOTHING;

@@ -11,7 +11,7 @@ class NotificationClient:
     def send_receipt(self, user_id: str, amount: float, journey_code: str = "UNKNOWN"):
         try:
             user_info = self.account_client.get_me(user_id)
-            user_email = user_info.get("emai;")
+            user_email = user_info.get("email")
 
             if not user_email:
                 print(f"Skipping email reciept: No email found for user {user_id}")

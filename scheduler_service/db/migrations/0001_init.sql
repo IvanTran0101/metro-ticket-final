@@ -23,7 +23,7 @@ CREATE TABLE IF NOT EXISTS line_stations (
     line_id         VARCHAR(10) REFERENCES metro_lines(line_id),
     station_id      VARCHAR(10) REFERENCES stations(station_id),
     distance_km     FLOAT NOT NULL,
-    stations_order  INT,
+    station_order   INT,
     PRIMARY KEY (line_id,station_id)
 );
 

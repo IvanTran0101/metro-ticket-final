@@ -19,22 +19,24 @@ USERS = [
         # UUIDs with trailing ...0001 and ...0002 to conceptually match 1, 2
         "user_id": "00000000-0000-0000-0000-000000000001",
         "username": "anhminh",  # you can login with this username
-        "password_hash": "d48cb882ca5db13885c5d8f644904ba552b2218d1f808632a7a218b3053ea087",
+        "password_hash": "9644bc88ecfc3948bcdf989c608165998d0469fd16f90f5a86f08b3760af919e",
         "pin_hash": "8d969eef6ecad3c29a3a629280e686cf0c3f5d5a86aff3ca12020c923adc6c92",
         "full_name": "Tran Anh Minh",
         "phone_number": "0776966302",
         "email": "anhminht68@gmail.com",
         "balance": 100_000_000,
+        "passenger_type": "STUDENT",
     },
     {
         "user_id": "00000000-0000-0000-0000-000000000002",
         "username": "thanhvu",
-        "password_hash": "d48cb882ca5db13885c5d8f644904ba552b2218d1f808632a7a218b3053ea087",
+        "password_hash": "9644bc88ecfc3948bcdf989c608165998d0469fd16f90f5a86f08b3760af919e",
         "pin_hash": "8d969eef6ecad3c29a3a629280e686cf0c3f5d5a86aff3ca12020c923adc6c92",
         "full_name": "Chau Thanh Vu",
         "phone_number": "0776966301",
         "email": "chauthanhvu24122007@gmail.com",
         "balance": 100_000_000,
+        "passenger_type": "STANDARD",
     },
 ]
 
@@ -45,9 +47,10 @@ def seed() -> None:
             db.execute(
                 text(
                     """
-                    INSERT INTO accounts (user_id, username, password_hash, pin_hash, full_name, phone_number, email, balance)
-                    VALUES (:user_id, :username, :password_hash, :pin_hash, :full_name, :phone_number, :email, :balance)
-                    ON CONFLICT (username) DO NOTHING
+                    INSERT INTO accounts (user_id, username, password_hash, pin_hash, full_name, phone_number, email, balance, passenger_type)
+                    VALUES (:user_id, :username, :password_hash, :pin_hash, :full_name, :phone_number, :email, :balance, :passenger_type)
+                    ON CONFLICT (username) DO UPDATE 
+                    SET passenger_type = EXCLUDED.passenger_type, balance = EXCLUDED.balance, password_hash = EXCLUDED.password_hash
                     """
                 ),
                 {
@@ -59,6 +62,7 @@ def seed() -> None:
                     "phone_number": u["phone_number"],
                     "email": u["email"],
                     "balance": float(u["balance"]),
+                    "passenger_type": u["passenger_type"],
                 },
             )
 

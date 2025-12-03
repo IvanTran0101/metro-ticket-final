@@ -1,98 +1,51 @@
-import { useState, useEffect } from "react";
-import { getAccountMe } from "../api/account";
-import { logout } from "../api/auth";
+import { useState } from "react";
 import styles from "./HomePage.module.css";
+import TicketMachine from "./TicketMachine";
+import GateCheckIn from "./GateCheckIn";
+import GateCheckOut from "./GateCheckOut";
 
-export default function HomePage({ onLoggedOut, onStartBooking, onViewPaymentHistory }) {
-  const [me, setMe] = useState(null);
-  const [error, setError] = useState("");
-
-  useEffect(() => {
-    (async () => {
-      try {
-        const data = await getAccountMe();
-        setMe(data);
-      } catch (e) {
-        setError("Failed to load profile. Please re-login.");
-      }
-    })();
-  }, []);
-
-  function handleLogout() {
-    logout();
-    onLoggedOut?.();
-  }
+export default function HomePage({ me, onLogout }) {
+  const [activeTab, setActiveTab] = useState("machine");
 
   return (
     <div className={styles.container}>
-      <div className={styles.card}>
-        <div className={styles.header}>
-          <h1 className={styles.title}>Metro Ticket Booking System</h1>
-          <p className={styles.subtitle}>Welcome to your ticket booking portal</p>
+      <header className={styles.header}>
+        <div className={styles.logo}>🚇 MetroFlow</div>
+        <div className={styles.user}>
+          <span>Welcome, {me?.name} ({me?.passenger_type})</span>
+          <span className={styles.balance}>Balance: {me?.balance?.toLocaleString()} VND</span>
+          <button onClick={onLogout} className={styles.logoutBtn}>Logout</button>
         </div>
+      </header>
 
-        {error && <div className={styles.error}>{error}</div>}
-
-        {me && (
-          <div className={styles.profile}>
-            <div className={styles.profileItem}>
-              <span className={styles.label}>Name:</span>
-              <span className={styles.value}>{me.name}</span>
-            </div>
-            <div className={styles.profileItem}>
-              <span className={styles.label}>Email:</span>
-              <span className={styles.value}>{me.email}</span>
-            </div>
-            <div className={styles.profileItem}>
-              <span className={styles.label}>Phone Number:</span>
-              <span className={styles.value}>{me.phone_number}</span>
-            </div>
-            <div className={styles.profileItem}>
-              <span className={styles.label}>Balance:</span>
-              <span className={styles.balance}>
-                {Number(me.balance || 0).toLocaleString(undefined, {
-                  minimumFractionDigits: 2,
-                  maximumFractionDigits: 2,
-                })}{" "}
-                VND
-              </span>
-            </div>
-          </div>
-        )}
-
-        <div className={styles.actions}>
-          <h2>What would you like to do?</h2>
-
-          <div className={styles.buttonGrid}>
-            <button
-              className={`${styles.button} ${styles.primary}`}
-              onClick={onStartBooking}
-            >
-              <div className={styles.buttonIcon}>🎫</div>
-              <div className={styles.buttonTitle}>Start Booking</div>
-              <div className={styles.buttonDesc}>Search and book metro tickets</div>
-            </button>
-
-            <button
-              className={`${styles.button} ${styles.secondary}`}
-              onClick={onViewPaymentHistory}
-            >
-              <div className={styles.buttonIcon}>📋</div>
-              <div className={styles.buttonTitle}>Payment History</div>
-              <div className={styles.buttonDesc}>View your past transactions</div>
-            </button>
-          </div>
-        </div>
-
-        <div className={styles.footer}>
+      <main className={styles.main}>
+        <div className={styles.tabs}>
           <button
-            className={`${styles.button} ${styles.logout}`}
-            onClick={handleLogout}
+            className={`${styles.tab} ${activeTab === "machine" ? styles.active : ""}`}
+            onClick={() => setActiveTab("machine")}
           >
-            Logout
+            1. Ticket Machine
+          </button>
+          <button
+            className={`${styles.tab} ${activeTab === "checkin" ? styles.active : ""}`}
+            onClick={() => setActiveTab("checkin")}
+          >
+            2. Check-in Gate
+          </button>
+          <button
+            className={`${styles.tab} ${activeTab === "checkout" ? styles.active : ""}`}
+            onClick={() => setActiveTab("checkout")}
+          >
+            3. Check-out Gate
           </button>
         </div>
-      </div>
+
+        <div className={styles.content}>
+          {activeTab === "machine" && <TicketMachine />}
+          {activeTab === "checkin" && <GateCheckIn />}
+          {activeTab === "checkout" && <GateCheckOut />}
+        </div>
+      </main>
     </div>
   );
 }

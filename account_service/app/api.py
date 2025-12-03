@@ -11,6 +11,7 @@ from account_service.app.schemas import (
     DeductionRequest,
     BalanceOperationResponse,
     PinVerifyRequest,
+    BalanceUpdateRequest,
 )
 from account_service.app.security import verify_password_hash
 

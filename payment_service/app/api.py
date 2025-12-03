@@ -55,8 +55,8 @@ def log_transaction(req: TransactionCreate, db: Session = Depends(get_db)):
         created_at=["created_at"]
     )
 
-@router.get("/transactions", response_model= list[TransactionResponse])
-def get_history(x_user_id: str = Header(None, alias-"X-User-Id"), db: Session = Depends(get_db)):
+@router.get("/internal/history", response_model= list[TransactionResponse])
+def get_history(x_user_id: str = Header(None, alias="X-User-Id"), db: Session = Depends(get_db)):
     if not x_user_id:
         raise HTTPException(401, "User context missing")
 

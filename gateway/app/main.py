@@ -28,7 +28,7 @@ TUITION_URL = settings.TUITION_SERVICE_URL.rstrip("/")
 OTP_URL = settings.OTP_SERVICE_URL.rstrip("/")
 NOTIF_URL = settings.NOTIFICATION_SERVICE_URL.rstrip("/")
 AUTH_URL = settings.AUTHENTICATION_SERVICE_URL.rstrip("/")
-BOOKING_URL = settings.BOOKING_SERVICE_URL.rstrip("/")
+JOURNEY_URL = settings.JOURNEY_SERVICE_URL.rstrip("/")
 SCHEDULER_URL = settings.SCHEDULER_SERVICE_URL.rstrip("/")
 
 
@@ -182,24 +182,24 @@ async def next_trains(station_id: str, request: Request) -> Response:
 # 2. Journey & Ticket (Thay thế Booking cũ)
 @app.post("/booking/ticket/purchase")
 async def purchase_ticket(request: Request) -> Response:
-    return await _proxy(request, BOOKING_URL, "ticket/purchase", require_auth=True)
+    return await _proxy(request, JOURNEY_URL, "ticket/purchase", require_auth=True)
 
 @app.get("/booking/history")
 async def journey_history(request: Request) -> Response:
-    return await _proxy(request, BOOKING_URL, "history", require_auth=True)
+    return await _proxy(request, JOURNEY_URL, "history", require_auth=True)
 
 # 3. Gate Simulator (Cổng soát vé)
 @app.post("/booking/gate/check-in")
 async def gate_check_in(request: Request) -> Response:
-    return await _proxy(request, BOOKING_URL, "gate/check-in", require_auth=False)
+    return await _proxy(request, JOURNEY_URL, "gate/check-in", require_auth=False)
 
 @app.post("/booking/gate/check-out")
 async def gate_check_out(request: Request) -> Response:
-    return await _proxy(request, BOOKING_URL, "gate/check-out", require_auth=False)
+    return await _proxy(request, JOURNEY_URL, "gate/check-out", require_auth=False)
 
-@app.post("/booking/gate/pay-penalty")
+@app.post("/booking/ticket/pay-penalty")
 async def pay_penalty(request: Request) -> Response:
-    return await _proxy(request, BOOKING_URL, "gate/pay-penalty", require_auth=False)
+    return await _proxy(request, JOURNEY_URL, "gate/pay-penalty", require_auth=False)
 
 # 4. Payment & Account
 @app.get("/payment/transactions")
