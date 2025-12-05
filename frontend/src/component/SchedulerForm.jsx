@@ -1,239 +1,233 @@
-import { useState } from "react";
-import { searchTrips } from "../api/scheduler";
-import { createBooking } from "../api/booking";
-import { ApiError } from "../api/client";
+import { useState, useEffect, useMemo } from "react";
+import { getNextTrains, getStations, checkFare, purchaseTicket } from "../api/journey";
 import styles from "./SchedulerForm.module.css";
 
-export default function SchedulerForm({ onBookingConfirmed }) {
+export default function SchedulerForm({ me, onLogout }) {
+  const [stations, setStations] = useState([]);
   const [fromStation, setFromStation] = useState("");
   const [toStation, setToStation] = useState("");
-  const [date, setDate] = useState("");
-  const [trips, setTrips] = useState([]);
-  const [selected, setSelected] = useState(null);
-  const [loading, setLoading] = useState(false);
+  const [nextTrains, setNextTrains] = useState([]);
+  const [loadingSchedule, setLoadingSchedule] = useState(false);
+  const [loadingPurchase, setLoadingPurchase] = useState(false);
   const [error, setError] = useState("");
-  const [seats, setSeats] = useState(1);
-  const [booking, setBooking] = useState(null);
-  const [idempotencyKey, setIdempotencyKey] = useState(crypto.randomUUID());
+  const [fare, setFare] = useState(null);
+  const [ticket, setTicket] = useState(null);
 
-  async function handleSearch(e) {
-    e?.preventDefault();
-    setError("");
-    setTrips([]);
-    setSelected(null);
-    setBooking(null);
+  useEffect(() => {
+    loadStations();
+  }, []);
 
-    setLoading(true);
+  // Auto-fetch schedule when fromStation changes
+  useEffect(() => {
+    if (fromStation) {
+      fetchSchedule(fromStation);
+    }
+  }, [fromStation]);
+
+  // Auto-check price when both stations selected
+  useEffect(() => {
+    handleCheckPrice();
+  }, [fromStation, toStation]);
+
+  async function loadStations() {
     try {
-      const res = await searchTrips({
-        from_station: fromStation,
-        to_station: toStation,
-        date: date || undefined
-      });
-      console.log(res)
-      const payload = Array.isArray(res) ? res : (res?.data || res?.results || res?.trips || []);
-
-      setTrips(res);
-      if (!payload || (Array.isArray(payload) && payload.length === 0)) {
-        setError("No trips found for the given criteria");
+      const data = await getStations();
+      setStations(data);
+      if (data.length > 0) {
+        setFromStation(data[0].station_id);
+        if (data.length > 1) {
+          setToStation(data[1].station_id);
+        }
       }
     } catch (err) {
-      console.error("Search error:", err);
-      if (err instanceof ApiError) {
-        const detail = typeof err.detail === 'string' ? err.detail : JSON.stringify(err.detail);
-        setError(`Server error ${err.status}: ${detail}`);
-      } else {
-        setError(err?.message || "Failed to search trips");
-      }
-    } finally {
-      setLoading(false);
+      console.error("Failed to load stations", err);
+      setError("Failed to load stations list");
     }
   }
 
-  async function handleConfirm(e) {
-    e?.preventDefault();
-    setError("");
+  async function fetchSchedule(stationId) {
+    setLoadingSchedule(true);
+    setNextTrains([]);
+    try {
+      const res = await getNextTrains(stationId);
+      setNextTrains(res.next_trains || []);
+    } catch (err) {
+      console.error("Schedule error:", err);
+      // Don't show error to user immediately to keep UI clean, just log it
+    } finally {
+      setLoadingSchedule(false);
+    }
+  }
 
-    if (!selected) {
-      setError("Please select a trip first");
+  async function handleCheckPrice() {
+    if (!fromStation || !toStation) return;
+    if (fromStation === toStation) {
+      setFare(0);
+      return;
+    }
+    try {
+      const res = await checkFare(fromStation, toStation);
+      setFare(res.standard_fare);
+    } catch (e) {
+      console.error(e);
+      setFare(null);
+    }
+  }
+
+  async function handleBuyTicket() {
+    if (!fromStation || !toStation) {
+      setError("Please select both stations");
+      return;
+    }
+    if (fromStation === toStation) {
+      setError("Origin and Destination cannot be the same");
       return;
     }
 
-    if (seats < 1 || seats > selected.remaining_seats) {
-      setError("Invalid seat count");
-      return;
-    }
-
-    setLoading(true);
-    try {
-      const res = await createBooking({
-        trip_id: selected.trip_id,
-        seats_reserved: Number(seats)
-      }, idempotencyKey);
-      setBooking(res);
-      setError("");
-      setIdempotencyKey(crypto.randomUUID());
-      // inform parent to navigate to payment with booking data
-      try {
-        onBookingConfirmed?.(res);
-      } catch (e) {
-        // ignore
-      }
-    } catch (err) {
-      console.error("Booking error:", err);
-      if (err instanceof ApiError) {
-        const detail = typeof err.detail === 'string' ? err.detail : JSON.stringify(err.detail);
-        setError(`Server error ${err.status}: ${detail}`);
-      } else {
-        setError(err?.message || "Booking failed");
-      }
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  function handleSelectTrip(trip) {
-    setSelected(trip);
-    setBooking(null);
+    setLoadingPurchase(true);
     setError("");
-    setSeats(1);
+    setTicket(null);
+
+    try {
+      const res = await purchaseTicket(fromStation, toStation);
+      setTicket(res);
+    } catch (err) {
+      console.error("Purchase error:", err);
+      setError(err.message || "Purchase failed");
+    } finally {
+      setLoadingPurchase(false);
+    }
   }
+
+  const finalFare = useMemo(() => {
+    if (fare === null) return null;
+    const type = me?.passenger_type || "STANDARD";
+    if (type === "STUDENT") return fare * 0.5;
+    if (type === "ELDERLY") return 0;
+    return fare;
+  }, [fare, me]);
+
+  const balanceFmt = useMemo(() => {
+    return new Intl.NumberFormat('vi-VN').format(me?.balance || 0);
+  }, [me]);
 
   return (
     <div className={styles.card}>
-      <h2 className={styles.title}>Trip Booking</h2>
+      <div className={styles.header}>
+        <div className={styles.topBar}>
+          <h2 className={styles.title}>Metro Station Hub</h2>
+          <div className={styles.userInfo}>
+            <div className={styles.balanceInfo}>
+              <span className={styles.balanceLabel}>Balance:</span>
+              <span className={styles.balanceValue}>{balanceFmt} VND</span>
+            </div>
+            {me?.passenger_type && (
+              <div className={styles.roleBadge}>
+                {me.passenger_type}
+              </div>
+            )}
+            <button className={styles.logoutBtn} onClick={onLogout}>Logout</button>
+          </div>
+        </div>
+
+        <div className={styles.stationSelector}>
+          <span className={styles.stationLabel}>Current Station:</span>
+          <select
+            className={styles.mainSelect}
+            value={fromStation}
+            onChange={(e) => setFromStation(e.target.value)}
+          >
+            {stations.map(s => (
+              <option key={s.station_id} value={s.station_id}>{s.name}</option>
+            ))}
+          </select>
+        </div>
+      </div>
 
       {error && <div className={styles.error}>{error}</div>}
 
-      <h3>1. Search Trips</h3>
+      <div className={styles.content}>
+        {/* Left Column: Live Schedule */}
+        <div className={`${styles.column} ${styles.leftColumn} `}>
+          <h3 className={styles.sectionTitle}>🔴 Live Departures</h3>
 
-      <form onSubmit={handleSearch}>
-        <label className={styles.label}>
-          From Station
-          <input
-            className={styles.input}
-            value={fromStation}
-            onChange={(e) => setFromStation(e.target.value)}
-            placeholder="Enter departure station"
-            required
-          />
-        </label>
-
-        <label className={styles.label}>
-          To Station
-          <input
-            className={styles.input}
-            value={toStation}
-            onChange={(e) => setToStation(e.target.value)}
-            placeholder="Enter arrival station"
-            required
-          />
-        </label>
-
-        <label className={styles.label}>
-          Date (optional)
-          <input
-            className={styles.input}
-            type="date"
-            value={date}
-            onChange={(e) => setDate(e.target.value)}
-          />
-        </label>
-
-        <button className={styles.button} type="submit" disabled={loading}>
-          {loading ? "Searching..." : "Search Trips"}
-        </button>
-      </form>
-
-      {trips.length > 0 && (
-        <>
-          <h3>2. Available Trips ({trips.length} found)</h3>
-          <div className={styles.tripList}>
-            {trips.map((trip) => (
-              <div
-                key={trip.trip_id}
-                className={`${styles.tripCard} ${selected?.trip_id === trip.trip_id ? styles.selectedTrip : ''}`}
-                onClick={() => handleSelectTrip(trip)}
-              >
-                <div className={styles.tripHeader}>
-                  <strong>{trip.route_name}</strong>
-                  {trip.brand && <span className={styles.brand}>{trip.brand}</span>}
+          {loadingSchedule ? (
+            <div className={styles.emptyState}>Loading schedule...</div>
+          ) : nextTrains.length > 0 ? (
+            <div className={styles.trainList}>
+              {nextTrains.map((train, idx) => (
+                <div key={idx} className={styles.trainItem}>
+                  <div className={styles.trainHeader}>
+                    <span>{train.line_name} <small style={{ opacity: 0.7 }}>({train.train_code})</small></span>
+                    <span className={styles.minutes}>{train.minutes_left} min</span>
+                  </div>
+                  <div className={styles.trainTime}>
+                    <span>To: {train.direction}</span>
+                    <span>{train.departure_time}</span>
+                  </div>
                 </div>
+              ))}
+            </div>
+          ) : (
+            <div className={styles.emptyState}>No upcoming trains found.</div>
+          )}
+        </div>
 
-                <div className={styles.tripRoute}>
-                  {trip.from_station_name} → {trip.to_station_name}
-                </div>
+        {/* Right Column: Quick Ticket */}
+        <div className={`${styles.column} ${styles.rightColumn} `}>
+          <h3 className={styles.sectionTitle}>🎫 Quick Ticket</h3>
 
-                <div className={styles.tripDetails}>
-                  <span>📅 {trip.date_departure}</span>
-                  <span>🕐 {trip.departure_time}</span>
-                </div>
+          <div className={styles.formGroup}>
+            <label className={styles.label}>Destination</label>
+            <select
+              className={styles.select}
+              value={toStation}
+              onChange={(e) => setToStation(e.target.value)}
+            >
+              {stations.map(s => (
+                <option key={s.station_id} value={s.station_id}>{s.name}</option>
+              ))}
+            </select>
+          </div>
 
-                <div className={styles.tripDetails}>
-                  <span>💺 {trip.remaining_seats} / {trip.capacity} seats</span>
-                  <span>💰 {new Intl.NumberFormat('vi-VN').format(trip.fare_per_seat)} VND</span>
-                </div>
-
-                {selected?.trip_id === trip.trip_id && (
-                  <div className={styles.selectedBadge}>✓ Selected</div>
-                )}
+          {fare !== null && (
+            <div className={styles.fareDisplay}>
+              <div className={styles.fareRow}>
+                <span>Standard Fare:</span>
+                <span>{new Intl.NumberFormat('vi-VN').format(fare)} VND</span>
               </div>
-            ))}
-          </div>
-        </>
-      )}
+              {me?.passenger_type && me.passenger_type !== "STANDARD" && (
+                <div className={`${styles.fareRow} ${styles.discountRow} `}>
+                  <span>{me.passenger_type} Price:</span>
+                  <span className={styles.finalPrice}>{new Intl.NumberFormat('vi-VN').format(finalFare)} VND</span>
+                </div>
+              )}
+              {!me?.passenger_type || me.passenger_type === "STANDARD" ? (
+                <div className={`${styles.fareRow} ${styles.totalRow} `}>
+                  <span>Total:</span>
+                  <span className={styles.finalPrice}>{new Intl.NumberFormat('vi-VN').format(finalFare)} VND</span>
+                </div>
+              ) : null}
+            </div>
+          )}
 
-      {selected && (
-        <>
-          <h3>3. Confirm Booking</h3>
+          <button
+            className={styles.button}
+            onClick={handleBuyTicket}
+            disabled={loadingPurchase || fare === null}
+          >
+            {loadingPurchase ? "Processing..." : "Purchase Ticket"}
+          </button>
 
-          <div className={styles.summaryCard}>
-            <div className={styles.summaryRow}>
-              <span>Route:</span>
-              <strong>{selected.route_name}</strong>
+          {ticket && (
+            <div className={styles.successBox}>
+              <div className={styles.successTitle}>Payment Successful!</div>
+              <span className={styles.ticketCode}>{ticket.journey_code}</span>
+              <p>Please save this code for Check-in</p>
             </div>
-            <div className={styles.summaryRow}>
-              <span>From - To:</span>
-              <strong>{selected.from_station_name} → {selected.to_station_name}</strong>
-            </div>
-            <div className={styles.summaryRow}>
-              <span>Departure:</span>
-              <strong>{selected.date_departure} at {selected.departure_time}</strong>
-            </div>
-            <div className={styles.summaryRow}>
-              <span>Available Seats:</span>
-              <strong>{selected.remaining_seats} / {selected.capacity}</strong>
-            </div>
-            <div className={styles.summaryRow}>
-              <span>Price per Seat:</span>
-              <strong>{new Intl.NumberFormat('vi-VN').format(selected.fare_per_seat)} VND</strong>
-            </div>
-          </div>
-
-          <form onSubmit={handleConfirm}>
-            <label className={styles.label}>
-              Number of Seats
-              <input
-                className={styles.input}
-                type="number"
-                min={1}
-                max={selected.remaining_seats}
-                value={seats}
-                onChange={(e) => setSeats(e.target.value)}
-              />
-            </label>
-
-            <div className={styles.totalAmount}>
-              <span>Total Amount:</span>
-              <strong>{new Intl.NumberFormat('vi-VN').format(selected.fare_per_seat * seats)} VND</strong>
-            </div>
-
-            <button className={styles.button} type="submit" disabled={loading}>
-              {loading ? "Processing..." : "Confirm Booking"}
-            </button>
-          </form>
-        </>
-      )}
+          )}
+        </div>
+      </div>
     </div>
   );
 }

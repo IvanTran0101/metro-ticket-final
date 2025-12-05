@@ -47,6 +47,7 @@ CREATE TABLE IF NOT EXISTS trip_schedules (
     route_id        INT REFERENCES routes(route_id),
     departure_time  TIME NOT NULL,
     days_of_week    VARCHAR(7) DEFAULT '1111111',
+    train_code      VARCHAR(20), -- Mã đoàn tàu vật lý (VD: Hitachi-01)
     is_active       BOOLEAN DEFAULT TRUE
 );
 
@@ -83,3 +84,83 @@ INSERT INTO routes (route_id, line_id, direction, description) VALUES
 
 -- Bảng giá
 INSERT INTO fare_rules (base_fare, price_per_km, min_balance) VALUES (12000, 2000, 20000);
+
+-- 1. Dữ liệu thời gian di chuyển cho Route 1 (Bến Thành -> Suối Tiên)
+-- Giả định: S01(0) -> S02(2p) -> [Nghỉ 5p] -> S03(2+5+3=10p) -> [Nghỉ 5p] -> S13(10+5+25=40p)
+INSERT INTO route_stations (route_id, station_id, stop_sequenece, travel_time_from_start) VALUES
+(1, 'S01', 1, 0),      -- Xuất phát
+(1, 'S02', 2, 120),    -- +2 phút
+(1, 'S03', 3, 600),    -- +10 phút (2m đi + 5m nghỉ + 3m đi)
+(1, 'S13', 4, 2400);   -- +40 phút (10m + 5m nghỉ + 25m đi)
+
+-- 2. Dữ liệu thời gian di chuyển cho Route 2 (Suối Tiên -> Bến Thành)
+-- Giả định: S13(0) -> S03(25p) -> [Nghỉ 5p] -> S02(25+5+3=33p) -> [Nghỉ 5p] -> S01(33+5+2=40p)
+INSERT INTO route_stations (route_id, station_id, stop_sequenece, travel_time_from_start) VALUES
+(2, 'S13', 1, 0),
+(2, 'S03', 2, 1500),   -- 25 phút
+(2, 'S02', 3, 1980),   -- 33 phút (25m đi + 5m nghỉ + 3m đi)
+(2, 'S01', 4, 2400);   -- 40 phút (33m + 5m nghỉ + 2m đi)
+-- 3. Lịch tàu chạy (Trip Schedules)
+-- Logic: 5 tàu (Hitachi 01-05), xuất phát cách nhau 10p từ 8:00.
+-- Mỗi chuyến 40p, nghỉ 5p quay đầu.
+INSERT INTO trip_schedules (trip_id, route_id, departure_time, train_code, is_active) VALUES
+('T_R1_01_0800', 1, '08:00:00', 'Hitachi-01', true),
+('T_R2_01_0845', 2, '08:45:00', 'Hitachi-01', true),
+('T_R1_01_0930', 1, '09:30:00', 'Hitachi-01', true),
+('T_R2_01_1015', 2, '10:15:00', 'Hitachi-01', true),
+('T_R1_01_1100', 1, '11:00:00', 'Hitachi-01', true),
+('T_R2_01_1145', 2, '11:45:00', 'Hitachi-01', true),
+('T_R1_01_1230', 1, '12:30:00', 'Hitachi-01', true),
+('T_R2_01_1315', 2, '13:15:00', 'Hitachi-01', true),
+('T_R1_01_1400', 1, '14:00:00', 'Hitachi-01', true),
+('T_R2_01_1445', 2, '14:45:00', 'Hitachi-01', true),
+('T_R1_01_1530', 1, '15:30:00', 'Hitachi-01', true),
+('T_R2_01_1615', 2, '16:15:00', 'Hitachi-01', true),
+('T_R1_02_0810', 1, '08:10:00', 'Hitachi-02', true),
+('T_R2_02_0855', 2, '08:55:00', 'Hitachi-02', true),
+('T_R1_02_0940', 1, '09:40:00', 'Hitachi-02', true),
+('T_R2_02_1025', 2, '10:25:00', 'Hitachi-02', true),
+('T_R1_02_1110', 1, '11:10:00', 'Hitachi-02', true),
+('T_R2_02_1155', 2, '11:55:00', 'Hitachi-02', true),
+('T_R1_02_1240', 1, '12:40:00', 'Hitachi-02', true),
+('T_R2_02_1325', 2, '13:25:00', 'Hitachi-02', true),
+('T_R1_02_1410', 1, '14:10:00', 'Hitachi-02', true),
+('T_R2_02_1455', 2, '14:55:00', 'Hitachi-02', true),
+('T_R1_02_1540', 1, '15:40:00', 'Hitachi-02', true),
+('T_R2_02_1625', 2, '16:25:00', 'Hitachi-02', true),
+('T_R1_03_0820', 1, '08:20:00', 'Hitachi-03', true),
+('T_R2_03_0905', 2, '09:05:00', 'Hitachi-03', true),
+('T_R1_03_0950', 1, '09:50:00', 'Hitachi-03', true),
+('T_R2_03_1035', 2, '10:35:00', 'Hitachi-03', true),
+('T_R1_03_1120', 1, '11:20:00', 'Hitachi-03', true),
+('T_R2_03_1205', 2, '12:05:00', 'Hitachi-03', true),
+('T_R1_03_1250', 1, '12:50:00', 'Hitachi-03', true),
+('T_R2_03_1335', 2, '13:35:00', 'Hitachi-03', true),
+('T_R1_03_1420', 1, '14:20:00', 'Hitachi-03', true),
+('T_R2_03_1505', 2, '15:05:00', 'Hitachi-03', true),
+('T_R1_03_1550', 1, '15:50:00', 'Hitachi-03', true),
+('T_R2_03_1635', 2, '16:35:00', 'Hitachi-03', true),
+('T_R1_04_0830', 1, '08:30:00', 'Hitachi-04', true),
+('T_R2_04_0915', 2, '09:15:00', 'Hitachi-04', true),
+('T_R1_04_1000', 1, '10:00:00', 'Hitachi-04', true),
+('T_R2_04_1045', 2, '10:45:00', 'Hitachi-04', true),
+('T_R1_04_1130', 1, '11:30:00', 'Hitachi-04', true),
+('T_R2_04_1215', 2, '12:15:00', 'Hitachi-04', true),
+('T_R1_04_1300', 1, '13:00:00', 'Hitachi-04', true),
+('T_R2_04_1345', 2, '13:45:00', 'Hitachi-04', true),
+('T_R1_04_1430', 1, '14:30:00', 'Hitachi-04', true),
+('T_R2_04_1515', 2, '15:15:00', 'Hitachi-04', true),
+('T_R1_04_1600', 1, '16:00:00', 'Hitachi-04', true),
+('T_R2_04_1645', 2, '16:45:00', 'Hitachi-04', true),
+('T_R1_05_0840', 1, '08:40:00', 'Hitachi-05', true),
+('T_R2_05_0925', 2, '09:25:00', 'Hitachi-05', true),
+('T_R1_05_1010', 1, '10:10:00', 'Hitachi-05', true),
+('T_R2_05_1055', 2, '10:55:00', 'Hitachi-05', true),
+('T_R1_05_1140', 1, '11:40:00', 'Hitachi-05', true),
+('T_R2_05_1225', 2, '12:25:00', 'Hitachi-05', true),
+('T_R1_05_1310', 1, '13:10:00', 'Hitachi-05', true),
+('T_R2_05_1355', 2, '13:55:00', 'Hitachi-05', true),
+('T_R1_05_1440', 1, '14:40:00', 'Hitachi-05', true),
+('T_R2_05_1525', 2, '15:25:00', 'Hitachi-05', true),
+('T_R1_05_1610', 1, '16:10:00', 'Hitachi-05', true),
+('T_R2_05_1655', 2, '16:55:00', 'Hitachi-05', true);

@@ -9,7 +9,7 @@ class PaymentClient:
 
         try:
             payload = {
-                "user_id": user_id,
+                "user_id": str(user_id),
                 "amount": amount,
                 "type": "TICKET_PAYMENT",
                 "description": description

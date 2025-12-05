@@ -10,6 +10,8 @@ export default function GateCheckOut() {
     const [error, setError] = useState("");
     const [penalty, setPenalty] = useState(null);
 
+    const [loading, setLoading] = useState(false);
+
     useEffect(() => {
         loadStations();
     }, []);
@@ -29,6 +31,7 @@ export default function GateCheckOut() {
         setMsg(null);
         setError("");
         setPenalty(null);
+        setLoading(true);
 
         try {
             const res = await gateCheckOut(code, stationId);
@@ -43,22 +46,29 @@ export default function GateCheckOut() {
             } else {
                 setError(err.message || "Check-out failed");
             }
+        } finally {
+            setLoading(false);
         }
     }
 
     async function handlePayPenalty() {
+        setLoading(true);
         try {
             const res = await payPenalty(code, penalty.amount);
             setPenalty(null);
             setMsg(res.message);
         } catch (err) {
             setError(err.message || "Penalty payment failed");
+        } finally {
+            setLoading(false);
         }
     }
 
     return (
         <div className={styles.container}>
-            <h2 className={styles.title}>🔴 Check-out Gate (Exit)</h2>
+            <div className={styles.header}>
+                <h2 className={styles.title}>🔴 Check-out Gate (Exit)</h2>
+            </div>
 
             <form onSubmit={handleCheckOut} className={styles.form}>
                 <div className={styles.field}>
@@ -87,8 +97,8 @@ export default function GateCheckOut() {
                     />
                 </div>
 
-                <button type="submit" className={styles.button}>
-                    Tap Card / Scan Code
+                <button type="submit" className={styles.button} disabled={loading}>
+                    {loading ? "Processing..." : "Tap Card / Scan Code"}
                 </button>
             </form>
 
@@ -97,8 +107,8 @@ export default function GateCheckOut() {
                     <h3>⚠️ Penalty Due</h3>
                     <p>{penalty.reason}</p>
                     <span className={styles.penaltyAmount}>{penalty.amount?.toLocaleString()} VND</span>
-                    <button onClick={handlePayPenalty} className={`${styles.button} ${styles.payBtn}`}>
-                        Pay Penalty & Exit
+                    <button onClick={handlePayPenalty} className={`${styles.button} ${styles.payBtn}`} disabled={loading}>
+                        {loading ? "Processing..." : "Pay Penalty & Exit"}
                     </button>
                 </div>
             )}

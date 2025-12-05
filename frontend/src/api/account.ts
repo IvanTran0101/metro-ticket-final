@@ -8,9 +8,10 @@ export interface AccountMeResponse {
   balance: number;
   username: string;
   email: string;
+  passenger_type?: string;
 }
 
 export async function getAccountMe(): Promise<AccountMeResponse> {
-  return api<AccountMeResponse>("/account/accounts/me", { method: "GET", requireAuth: true });
+  return api<AccountMeResponse>("/account/me", { method: "GET", requireAuth: true });
 }
 

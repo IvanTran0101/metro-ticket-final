@@ -25,6 +25,7 @@ class Settings(BaseSettings):
     # CORS & HTTP client
     CORS_ALLOW_ORIGINS: str = Field(default="*")
     HTTP_TIMEOUT: float = Field(default=10.0)
+    REDIS_URL: str = Field(default="redis://redis:6379/0")
 
 
 settings = Settings()

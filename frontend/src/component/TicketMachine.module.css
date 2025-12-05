@@ -45,6 +45,7 @@
   border-radius: 6px;
   font-size: 1rem;
   background-color: #fff;
+  color: #333;
 }
 
 .button {
@@ -107,4 +108,70 @@
   color: #666;
   font-style: italic;
   margin-top: 1rem;
+}
+
+.balanceBox {
+  background-color: #e3f2fd;
+  color: #0d47a1;
+  padding: 1rem;
+  border-radius: 8px;
+  margin-bottom: 1.5rem;
+  font-size: 1.2rem;
+  text-align: center;
+  border: 1px solid #bbdefb;
+}
+
+.buttonGroup {
+  display: flex;
+  gap: 1rem;
+}
+
+.secondaryButton {
+  flex: 1;
+  padding: 0.8rem;
+  background-color: #6c757d;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.secondaryButton:hover {
+  background-color: #5a6268;
+}
+
+.fareDisplay {
+  background-color: #fff3cd;
+  color: #856404;
+  padding: 1rem;
+  border-radius: 6px;
+  text-align: center;
+  font-size: 1.2rem;
+  border: 1px solid #ffeeba;
+}
+
+.nextTrainsBox {
+  margin-top: 2rem;
+  padding: 1rem;
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  border: 1px solid #dee2e6;
+}
+
+.nextTrainsBox h3 {
+  margin-top: 0;
+  color: #495057;
+}
+
+.nextTrainsBox ul {
+  list-style: none;
+  padding: 0;
+}
+
+.nextTrainsBox li {
+  padding: 0.5rem 0;
+  border-bottom: 1px solid #eee;
+  color: #333;
 }

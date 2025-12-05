@@ -82,28 +82,95 @@ def gate_check_in(req: GateRequest, db: Session = Depends(get_db)):
 
     if not ticket: raise HTTPException(404,"Code not exists")
 
+    #kiem tra ve mua tu ngay hom truoc ma chua dung -> het han
+    created_at = ticket["created_at"]
+    if created_at:
+        #chuyen ve date so sanh , so sanh phan date() an toan nhat cho ve ngay
+        if created_at.date() < datetime.now().date():
+            db.execute(
+                text(" UPDATE journeys SET status='EXPIRED' WHERE journey_id = :id"),
+                {"id": ticket["journey_id"]}
+            )
+            db.commit()
+            raise HTTPException(400,"TICKET EXPIRED")
+    
     if ticket["status"] != "PAID":
-        status_map = {"IN_TRANSIT": "TICKET IS BEING USED", "COMPLETED": "TICKET IS EXPIRED", "CLOSED": "TICKET IS CLOSED"}
+        status_map = {
+            "IN_TRANSIT": "TICKET IS BEING USED",
+            "COMPLETED": "TICKET IS EXPIRED",
+            "CLOSED": "TICKET IS CLOSED",
+            "EXPIRED": "TICKET IS EXPIRED"
+        }
         raise HTTPException(400, status_map.get(ticket["status"], "TICKET INVALID"))
-
+    
     if ticket["check_in_station_id"] != req.station_id:
         raise HTTPException(400, f"WRONG GATE ! THIS TICKET MUST BE USED AT {ticket['check_in_station_id']}")
-
-    db.execute(
-        text("UPDATE journeys SET status= 'IN_TRANSIT', check_in_time=NOW() WHERE journey_id = :id "),
-        {"id": ticket["journey_id"]}
-    )
+    
+    db.execute(text(
+        "UPDATE journeys SET status = 'IN_TRANSIT', check_in_time=NOW() WHERE journey_id = :id"
+    ), {"id": ticket["journey_id"]})
     db.commit()
-
-    return GateResponse(ok = True, message= f"Welcome at {req.station_id}")
+    return GateResponse(ok = True, message = f"Welcome at {req.station_id}")
 
 @router.post("/gate/check-out")
 def gate_check_out(req: GateRequest, db: Session = Depends(get_db)):
+    
     sql = text("SELECT * FROM journeys WHERE journey_code = :c")
     ticket = db.execute(sql, {"c": req.journey_code}).mappings().first()
 
     if not ticket: raise HTTPException(404, "Code not exists")
-    if ticket["status"] != "IN_TRANSIT": raise HTTPException(400, "TICKET not check-in yet")
+
+    if ticket["status"] == "PAID":
+        max_fare = 50000.0
+        paid_amount = float(ticket["fare_amount"])
+
+        penalty = max(0, max_fare - paid_amount)
+        try: 
+            if penalty > 0:
+                AccountClient().deduct_balance(
+                    str(ticket["user_id"]),
+                    penalty,
+                    f"Penalty: Check-out without Check-in (Diff: {penalty:,.0f})"
+                )
+            db.execute(text("""
+            UPDATE journeys SET status = 'CLOSED',
+             penalty_amount= :p, check_out_time = NOW(),
+             check_out_station_id= :s WHERE journey_id = :id
+            """),
+             {"p": penalty, "s": req.station_id, "id": ticket["journey_id"]})
+            
+            db.commit()
+            return GateResponse(ok = True, message= f"No Check-in detected. Penalty {penalty:,.0f} VND deducted")
+        except Exception as e:
+            raise HTTPException(402, detail= "Insufficient balance for Penalty")
+        
+    if ticket["status"] != "IN_TRANSIT":
+        status = ticket["status"]
+        if status in ["COMPLETED", "CLOSED", "REFUNDED"]:
+            raise HTTPException(400, f"TICKET USED (Status: {status})")
+        if status == "PENALTY_DUE":
+             raise HTTPException(402, f"PENALTY DUE. Please pay.")
+        raise HTTPException(400, f"TICKET INVALID (Status: {status})")
+
+    #kiem tra neu vao/ra cung 1 ga
+    if ticket["check_in_station_id"] == req.station_id:
+        check_in_time = ticket["check_in_time"]
+
+        now = datetime.now(check_in_time.tzinfo) if check_in_time.tzinfo else datetime.now()
+        duration_minutes = (now - check_in_time).total_seconds() / 60
+
+        if duration_minutes <= 15:
+            #case 1: duoi 15p -> hoan tien
+            try:
+                AccountClient().top_up(str(ticket["user_id"]), float(ticket["fare_amount"]))
+
+                db.execute(text("UPDATE journeys SET status ='REFUNDED', check_out_time= NOW(), check_out_station_id= :s WHERE journey_id = :id"),
+                {"s": req.station_id, "id": ticket["journey_id"]})
+                db.commit()
+                return GateResponse( ok = True, message= f"Same station exit (<15min). Refunded {ticket['fare_amount']:,.0f}VND")
+            except Exception as e:
+                print(f"Refund failed: {e}")
+                raise HTTPException(500, "Refund failed")
 
     #kiem tra di lo
     #tinh tien thuc te chang da di
@@ -128,15 +195,15 @@ def gate_check_out(req: GateRequest, db: Session = Depends(get_db)):
             diff = real_price - paid
             penalty = diff + 10000
 
-        db.execute(text("UPDATE journeys SET status= 'PENALTY_DUE' WHERE journey_id= :id"), {"id": ticket["journey_id"]})
-        db.commit()
+            db.execute(text("UPDATE journeys SET status= 'PENALTY_DUE' WHERE journey_id= :id"), {"id": ticket["journey_id"]})
+            db.commit()
 
-        return JSONResponse(status_code= 402, content={
-            "error": "WRONG_DESTINATION",
-            "message": f"YOU ARRIVED AT WRONG GATE! PLEASE PAY PENALTY {penalty:,.0f}vnd", 
-            "penalty_amount": penalty,
-            "journey_code": req.journey_code
-        })
+            return JSONResponse(status_code= 402, content={
+                "error": "WRONG_DESTINATION",
+                "message": f"YOU ARRIVED AT WRONG GATE! PLEASE PAY PENALTY {penalty:,.0f}vnd", 
+                "penalty_amount": penalty,
+                "journey_code": req.journey_code
+            })
     except Exception as e:
         print(f"Warning check price: {e}")
 
@@ -182,6 +249,7 @@ def _finalize_journey(db, ticket, end_station):
 
 @router.post("/gate/pay-penalty")
 def pay_penalty(req: PenaltyPaymentRequest, db: Session = Depends(get_db)):
+    print(f"DEBUG: pay_penalty payload: {req.dict()}")
     sql = text("SELECT * FROM journeys WHERE journey_code = :c")
     ticket = db.execute(sql, {"c": req.journey_code}).mappings().first()
     if not ticket: raise HTTPException(404, "Vé đâu?")
@@ -222,3 +290,32 @@ def get_history(x_user_id: str = Header(None, alias="X-User-Id"), db: Session = 
     rows = db.execute(sql, {"uid": x_user_id}).mappings().all()
     return rows
     
+
+@router.post("/internal/cron/process-missing-checkouts")
+def process_missing_checkouts(db: Session = Depends(get_db)):
+    #tim cac ve IN_TRANSIT qua 24h
+    sql = text("""
+        SELECT * FROM journeys WHERE status = 'IN_TRANSIT'
+        AND check_in_time < NOW() - INTERVAL '1 day'
+    """)
+    stuck_tickets = db.execute(sql).mappings().all()
+
+    count = 0
+    acc_client = AccountClient()
+    max_penalty = 50000.0
+
+    for ticket in stuck_tickets:
+        try:
+            acc_client.deduct_balance(
+                str(ticket["user_id"]),
+                max_penalty,
+                f"Penalty: Missing Check-out for ticket {ticket['journey_code']}"
+            )
+            db.execute(text("UPDATE journeys SET status= 'CLOSED', penalty_amount= :p, check_out_time = NOW() WHERE journey_id = :id"),
+            {"p": max_penalty, "id": ticket["journey_id"]})
+            count += 1
+        except Exception as e:
+            print(f"Failed to process ticket {ticket['journey_code']}: {e}")
+        
+    db.commit()
+    return {"ok": True, "processed_count": count, "message": f"Processed {count} stuck tickets"}

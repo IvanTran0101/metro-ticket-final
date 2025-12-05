@@ -58,6 +58,7 @@ class NextTrainInfo(BaseModel):
     direction: str        # VD: Hướng Suối Tiên
     departure_time: time  # VD: 08:15:00
     minutes_left: int     # VD: 5 (còn 5 phút nữa tàu đến)
+    train_code: str | None = None # VD: Hitachi-01
 
 class StationScheduleResponse(BaseModel):
     station_id: str

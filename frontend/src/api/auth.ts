@@ -22,14 +22,15 @@ export interface LoginResponse {
 }
 
 export async function login(req: LoginRequest): Promise<LoginResponse> {
-  // Explicit endpoint: /auth/authentication/login
-  const data = await api<LoginResponse>("/auth/authentication/login", {
+  const data = await api<LoginResponse>("/auth/login", {
     method: "POST",
     body: req,
     requireAuth: false,
   });
-  // Store token in cookie only
-  setCookie("access_token", data.access_token, 7, "Lax");
+
+  if (data.access_token) {
+    setCookie("access_token", data.access_token, 7, "Lax");
+  }
   return data;
 }
 
@@ -38,8 +39,11 @@ export function logout(): void {
 }
 
 export function getToken(): string | null {
-  // Read token from cookie
   if (typeof document === "undefined") return null;
   const match = document.cookie.match(/(?:^|; )access_token=([^;]*)/);
   return match ? decodeURIComponent(match[1]) : null;
+}
+
+export async function getMe(): Promise<any> {
+  return api("/account/me");
 }

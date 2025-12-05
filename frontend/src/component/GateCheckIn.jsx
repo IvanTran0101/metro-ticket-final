@@ -38,7 +38,9 @@ export default function GateCheckIn() {
 
     return (
         <div className={styles.container}>
-            <h2 className={styles.title}>🟢 Check-in Gate (Entry)</h2>
+            <div className={styles.header}>
+                <h2 className={styles.title}>🟢 Check-in Gate (Entry)</h2>
+            </div>
 
             <form onSubmit={handleCheckIn} className={styles.form}>
                 <div className={styles.field}>

@@ -56,11 +56,17 @@ export async function api<T = any>(path: string, opts: RequestOptions = {}): Pro
     ...authHeader(requireAuth),
     ...(headers || {}),
   };
+
+  if (method === "POST" && !h["Idempotency-Key"]) {
+    h["Idempotency-Key"] = crypto.randomUUID();
+  }
+
   const resp = await fetch(url, {
     method,
     headers: h,
     body: body !== undefined ? JSON.stringify(body) : undefined,
   });
+
   if (!resp.ok) {
     let detail: any = undefined;
     const ct = resp.headers.get("content-type") || "";
@@ -70,7 +76,7 @@ export async function api<T = any>(path: string, opts: RequestOptions = {}): Pro
       } else {
         detail = await resp.text();
       }
-    } catch (e) {}
+    } catch (e) { }
     throw new ApiError(resp.status, resp.statusText, detail);
   }
   const ct = resp.headers.get("content-type") || "";

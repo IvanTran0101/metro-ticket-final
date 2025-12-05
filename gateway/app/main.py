@@ -44,6 +44,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+from gateway.app.middleware import IdempotencyMiddleware
+app.add_middleware(IdempotencyMiddleware, redis_url=settings.REDIS_URL)
+
 
 _client: httpx.AsyncClient | None = None
 

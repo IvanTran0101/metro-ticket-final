@@ -93,7 +93,7 @@ def search_route(req: RouteSearchRequest, db: Session = Depends(get_db)):
     return FareResponse(
         from_station_name = s_map.get(req.from_station, req.from_station),
         to_station_name = s_map.get(req.to_station, req.to_station),
-        distace_km = round(data["distance"], 1),
+        distance_km = round(data["distance"], 1),
         standard_fare = data["total_fare"],
         estimated_time_mins = est_time,
         route_description = f"Moving on {data['line_id']}"
@@ -127,6 +127,7 @@ def get_next_trains(station_id: str, db: Session = Depends(get_db)):
 
     current_now = datetime.now()
     current_time_str = current_now.strftime("%H:%M:%S")
+    print(f"DEBUG: Station {station_id}, Current Time: {current_now}")
 
     #query phuc tap: join schedule -> route -> route station de tinh gio den
     #cong thuc: gio den = gio khoi hanh (trip) + thoi gian di chuyen (route_station)
@@ -135,7 +136,8 @@ def get_next_trains(station_id: str, db: Session = Depends(get_db)):
         SELECT 
             ml.name as line_name,
             r.description as direction_desc,
-            ts. departure_time,
+            ts.departure_time,
+            ts.train_code,
             rs.travel_time_from_start
         FROM trip_schedules ts
         JOIN routes r ON ts.route_id = r.route_id
@@ -147,6 +149,7 @@ def get_next_trains(station_id: str, db: Session = Depends(get_db)):
         """
     )
     rows = db.execute(sql, {"sid": station_id}).mappings().all()
+    print(f"DEBUG: Found {len(rows)} raw schedules for station {station_id}")
 
     next_trains = []
 
@@ -170,7 +173,8 @@ def get_next_trains(station_id: str, db: Session = Depends(get_db)):
             line_name = row["line_name"],
             direction= row["direction_desc"],
             departure_time = train_arrival_dt.time(),
-            minutes_left=minutes_left
+            minutes_left=minutes_left,
+            train_code=row["train_code"]
         ))
 
         if len(next_trains) >= 3:

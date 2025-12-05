@@ -18,7 +18,7 @@ class NotificationClient:
                 return 
 
             payload= {
-                "user_id": user_id,
+                "user_id": str(user_id),
                 "email": user_email,
                 "amount": amount,
                 "journey_code": journey_code,

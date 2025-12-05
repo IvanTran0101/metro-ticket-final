@@ -52,7 +52,7 @@ def log_transaction(req: TransactionCreate, db: Session = Depends(get_db)):
         amount=final_amount,
         type= req.type,
         description=req.description,
-        created_at=["created_at"]
+        created_at=row["created_at"]
     )
 
 @router.get("/internal/history", response_model= list[TransactionResponse])
