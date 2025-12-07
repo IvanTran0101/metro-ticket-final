@@ -20,6 +20,7 @@ export default function GateCheckIn() {
             if (data.length > 0) setStationId(data[0].station_id);
         } catch (err) {
             console.error(err);
+            setError("Failed to load stations. Please try again.");
         }
     }
 

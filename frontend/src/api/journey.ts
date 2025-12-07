@@ -19,13 +19,8 @@ export async function getStations(): Promise<Station[]> {
     try {
         return await api<Station[]>('/scheduler/stations');
     } catch (e) {
-        console.warn("Could not fetch stations, using fallback", e);
-        return [
-            { station_id: "S01", name: "Ben Thanh" },
-            { station_id: "S02", name: "Nha Hat Lon" },
-            { station_id: "S03", name: "Ba Son" },
-            { station_id: "S13", name: "Suoi Tien" },
-        ];
+        console.error("Failed to fetch stations", e);
+        throw e;
     }
 }
 

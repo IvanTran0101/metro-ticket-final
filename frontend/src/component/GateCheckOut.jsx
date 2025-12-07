@@ -23,6 +23,7 @@ export default function GateCheckOut() {
             if (data.length > 0) setStationId(data[data.length - 1]?.station_id || data[0].station_id);
         } catch (err) {
             console.error(err);
+            setError("Failed to load stations. Please try again.");
         }
     }
 

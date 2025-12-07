@@ -168,11 +168,11 @@ async def health() -> Dict[str, str]:
 # 1. Scheduler (Hạ tầng & Giá)
 @app.get("/scheduler/stations")
 async def get_stations(request: Request) -> Response:
-    return await _proxy(request, SCHEDULER_URL, "stations", require_auth=True)
+    return await _proxy(request, SCHEDULER_URL, "stations", require_auth=False)
 
 @app.get("/scheduler/lines")
 async def get_lines(request: Request) -> Response:
-    return await _proxy(request, SCHEDULER_URL, "lines", require_auth=True)
+    return await _proxy(request, SCHEDULER_URL, "lines", require_auth=False)
 
 @app.post("/scheduler/routes/search")
 async def search_route(request: Request) -> Response:
