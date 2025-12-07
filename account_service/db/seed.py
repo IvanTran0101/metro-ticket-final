@@ -20,7 +20,6 @@ USERS = [
         "user_id": "00000000-0000-0000-0000-000000000001",
         "username": "anhminh",  # you can login with this username
         "password_hash": "9644bc88ecfc3948bcdf989c608165998d0469fd16f90f5a86f08b3760af919e",
-        "pin_hash": "8d969eef6ecad3c29a3a629280e686cf0c3f5d5a86aff3ca12020c923adc6c92",
         "full_name": "Tran Anh Minh",
         "phone_number": "0776966302",
         "email": "anhminht68@gmail.com",
@@ -31,7 +30,6 @@ USERS = [
         "user_id": "00000000-0000-0000-0000-000000000002",
         "username": "thanhvu",
         "password_hash": "9644bc88ecfc3948bcdf989c608165998d0469fd16f90f5a86f08b3760af919e",
-        "pin_hash": "8d969eef6ecad3c29a3a629280e686cf0c3f5d5a86aff3ca12020c923adc6c92",
         "full_name": "Chau Thanh Vu",
         "phone_number": "0776966301",
         "email": "chauthanhvu24122007@gmail.com",
@@ -47,8 +45,8 @@ def seed() -> None:
             db.execute(
                 text(
                     """
-                    INSERT INTO accounts (user_id, username, password_hash, pin_hash, full_name, phone_number, email, balance, passenger_type)
-                    VALUES (:user_id, :username, :password_hash, :pin_hash, :full_name, :phone_number, :email, :balance, :passenger_type)
+                    INSERT INTO accounts (user_id, username, password_hash, full_name, phone_number, email, balance, passenger_type)
+                    VALUES (:user_id, :username, :password_hash, :full_name, :phone_number, :email, :balance, :passenger_type)
                     ON CONFLICT (username) DO UPDATE 
                     SET passenger_type = EXCLUDED.passenger_type, balance = EXCLUDED.balance, password_hash = EXCLUDED.password_hash
                     """
@@ -57,7 +55,6 @@ def seed() -> None:
                     "user_id": u["user_id"],
                     "username": u["username"],
                     "password_hash": u["password_hash"],
-                    "pin_hash": u["pin_hash"],
                     "full_name": u["full_name"],
                     "phone_number": u["phone_number"],
                     "email": u["email"],

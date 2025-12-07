@@ -191,6 +191,10 @@ async def purchase_ticket(request: Request) -> Response:
 async def journey_history(request: Request) -> Response:
     return await _proxy(request, JOURNEY_URL, "history", require_auth=True)
 
+@app.get("/booking/tickets")
+async def get_tickets(request: Request) -> Response:
+    return await _proxy(request, JOURNEY_URL, "tickets", require_auth=True)
+
 # 3. Gate Simulator (Cổng soát vé)
 @app.post("/booking/gate/check-in")
 async def gate_check_in(request: Request) -> Response:
@@ -200,7 +204,7 @@ async def gate_check_in(request: Request) -> Response:
 async def gate_check_out(request: Request) -> Response:
     return await _proxy(request, JOURNEY_URL, "gate/check-out", require_auth=False)
 
-@app.post("/booking/ticket/pay-penalty")
+@app.post("/booking/gate/pay-penalty")
 async def pay_penalty(request: Request) -> Response:
     return await _proxy(request, JOURNEY_URL, "gate/pay-penalty", require_auth=False)
 

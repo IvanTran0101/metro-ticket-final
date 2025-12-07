@@ -85,24 +85,20 @@ INSERT INTO routes (route_id, line_id, direction, description) VALUES
 -- Bảng giá
 INSERT INTO fare_rules (base_fare, price_per_km, min_balance) VALUES (12000, 2000, 20000);
 
--- 1. Dữ liệu thời gian di chuyển cho Route 1 (Bến Thành -> Suối Tiên)
--- Giả định: S01(0) -> S02(2p) -> [Nghỉ 5p] -> S03(2+5+3=10p) -> [Nghỉ 5p] -> S13(10+5+25=40p)
+
 INSERT INTO route_stations (route_id, station_id, stop_sequenece, travel_time_from_start) VALUES
 (1, 'S01', 1, 0),      -- Xuất phát
 (1, 'S02', 2, 120),    -- +2 phút
 (1, 'S03', 3, 600),    -- +10 phút (2m đi + 5m nghỉ + 3m đi)
 (1, 'S13', 4, 2400);   -- +40 phút (10m + 5m nghỉ + 25m đi)
 
--- 2. Dữ liệu thời gian di chuyển cho Route 2 (Suối Tiên -> Bến Thành)
--- Giả định: S13(0) -> S03(25p) -> [Nghỉ 5p] -> S02(25+5+3=33p) -> [Nghỉ 5p] -> S01(33+5+2=40p)
+
 INSERT INTO route_stations (route_id, station_id, stop_sequenece, travel_time_from_start) VALUES
 (2, 'S13', 1, 0),
 (2, 'S03', 2, 1500),   -- 25 phút
 (2, 'S02', 3, 1980),   -- 33 phút (25m đi + 5m nghỉ + 3m đi)
 (2, 'S01', 4, 2400);   -- 40 phút (33m + 5m nghỉ + 2m đi)
--- 3. Lịch tàu chạy (Trip Schedules)
--- Logic: 5 tàu (Hitachi 01-05), xuất phát cách nhau 10p từ 8:00.
--- Mỗi chuyến 40p, nghỉ 5p quay đầu.
+
 INSERT INTO trip_schedules (trip_id, route_id, departure_time, train_code, is_active) VALUES
 ('T_R1_01_0800', 1, '08:00:00', 'Hitachi-01', true),
 ('T_R2_01_0845', 2, '08:45:00', 'Hitachi-01', true),

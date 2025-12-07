@@ -37,10 +37,3 @@ class BalanceOperationResponse(BaseModel):
     message: str
 
 # FIX: Bổ sung 2 class thiếu
-class PinVerifyRequest(BaseModel):
-    user_id: str
-    pin: str
-
-class BalanceUpdateRequest(BaseModel):
-    user_id: str
-    amount: float

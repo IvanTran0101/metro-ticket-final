@@ -11,7 +11,7 @@ router = APIRouter()
 
 @router.post("/post/authentication/login", response_model=LoginResponse)
 def login(body: LoginRequest) -> LoginResponse:
-    # Hash password before sending to account service
+    # hash password
     pwd_hash = hash_password(body.password, settings.PASSWORD_SALT)
 
     try:
@@ -24,8 +24,6 @@ def login(body: LoginRequest) -> LoginResponse:
     claims = user_data.get("claims", {})
     token = create_access_token(subject=str(user_id or body.username), extra_claims=claims)
     
-    # Calculate expire time (same logic as in create_access_token)
-    # We should ideally return the exact exp from token, but for now we use settings
     import time
     expire_time = int(time.time()) + settings.JWT_EXPIRES_MIN * 60
 

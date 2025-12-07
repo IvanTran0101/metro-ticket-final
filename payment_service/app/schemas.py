@@ -8,7 +8,7 @@ class TransactionCreate(BaseModel):
     user_id: str
     amount: float
     type: str = "TICKET_PAYMENT" #TICKET_PAYMENT, TOP_UP, PENALTY
-    journey_id: Optional[str] = None
+    ticket_id: Optional[str] = None
     description: Optional[str] = None
 
 class TransactionResponse(BaseModel):
@@ -19,5 +19,5 @@ class TransactionResponse(BaseModel):
     description: Optional[str]
     created_at: datetime.datetime
 
-    journey_id: Optional[str]
+    ticket_id: Optional[str]
     

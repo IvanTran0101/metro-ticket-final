@@ -29,15 +29,24 @@ export async function getStations(): Promise<Station[]> {
     }
 }
 
-export async function purchaseTicket(fromStation: string, toStation: string): Promise<TicketResponse> {
+export async function purchaseTicket(fromStation: string, toStation: string, ticketType: string = "SINGLE"): Promise<TicketResponse> {
     return api<TicketResponse>('/booking/ticket/purchase', {
         method: 'POST',
         body: {
             from_station: fromStation,
             to_station: toStation,
+            ticket_type: ticketType,
             passenger_type: "STANDARD"
         }
     });
+}
+
+export async function getJourneyHistory(): Promise<any[]> {
+    return api<any[]>('/booking/history');
+}
+
+export async function getMyTickets(): Promise<any[]> {
+    return api<any[]>('/booking/tickets');
 }
 
 export async function gateCheckIn(journeyCode: string, stationId: string): Promise<any> {
@@ -63,14 +72,9 @@ export async function gateCheckOut(journeyCode: string, stationId: string): Prom
 }
 
 export async function payPenalty(journeyCode: string, amount: number): Promise<any> {
-    return api('/booking/ticket/pay-penalty', {
+    return api('/booking/gate/pay-penalty', {
         method: 'POST',
-        body: {
-            journey_code: journeyCode,
-            amount: amount,
-            auto_topup: true
-        },
-        requireAuth: false
+        body: { journey_code: journeyCode, amount },
     });
 }
 

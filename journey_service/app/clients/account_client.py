@@ -18,7 +18,3 @@ class AccountClient:
         }
         resp = self._client.post("/internal/post/account/deduct", json=payload)
         return resp.json()
-
-    def top_up(self, user_id: str, amount: float):
-        payload = {"user_id": str(user_id), "amount": amount}
-        self._client.post("/internal/post/account/topup", json=payload)

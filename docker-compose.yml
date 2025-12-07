@@ -5,6 +5,7 @@ services:
       POSTGRES_USER: account_user
       POSTGRES_PASSWORD: account_pass
       POSTGRES_DB: account_db
+      TZ: "Asia/Ho_Chi_Minh"
     healthcheck:
       test: [ "CMD-SHELL", "pg_isready -U account_user -d account_db" ]
       interval: 5s
@@ -22,6 +23,7 @@ services:
       POSTGRES_USER: payment_user
       POSTGRES_PASSWORD: payment_pass
       POSTGRES_DB: payment_db
+      TZ: "Asia/Ho_Chi_Minh"
     healthcheck:
       test: [ "CMD-SHELL", "pg_isready -U payment_user -d payment_db" ]
       interval: 5s
@@ -39,6 +41,7 @@ services:
       POSTGRES_USER: journey_user
       POSTGRES_PASSWORD: journey_pass
       POSTGRES_DB: journey_db
+      TZ: "Asia/Ho_Chi_Minh"
     healthcheck:
       test: [ "CMD-SHELL", "pg_isready -U journey_user -d journey_db" ]
       interval: 5s
@@ -56,6 +59,7 @@ services:
       POSTGRES_USER: scheduler_user
       POSTGRES_PASSWORD: scheduler_pass
       POSTGRES_DB: scheduler_db
+      TZ: "Asia/Ho_Chi_Minh"
     healthcheck:
       test: [ "CMD-SHELL", "pg_isready -U scheduler_user -d scheduler_db" ]
       interval: 5s

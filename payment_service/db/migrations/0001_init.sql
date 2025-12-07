@@ -9,7 +9,8 @@ CREATE TABLE IF NOT EXISTS transactions (
     user_id        UUID NOT NULL,
     
     -- Link tới Journey nếu là giao dịch trừ vé (có thể null nếu là nạp tiền)
-    journey_id     UUID, 
+    -- Link tới Ticket (thay vì Journey)
+    ticket_id      UUID, 
     
     amount         NUMERIC(12, 2) NOT NULL, -- Âm là trừ, Dương là nạp
     type           VARCHAR(20) NOT NULL,    -- TICKET_PAYMENT, TOP_UP, PENALTY

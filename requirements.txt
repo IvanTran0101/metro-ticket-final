@@ -5,3 +5,4 @@ SQLAlchemy==2.0.23
 psycopg2-binary==2.9.9
 redis==5.0.1
 pydantic==1.10.13
+apscheduler==3.10.4

@@ -19,9 +19,9 @@ def log_transaction(req: TransactionCreate, db: Session = Depends(get_db)):
     new_id = str(uuid.uuid4())
     sql = text("""
         INSERT INTO transactions (
-            transaction_id, user_id, journey_id, amount, type, description, 
+            transaction_id, user_id, ticket_id, amount, type, description, 
             created_at) VALUES (
-            :id, :uid, :jid, :amt, :type, :desc, NOW()
+            :id, :uid, :tid, :amt, :type, :desc, NOW()
             ) RETURNING transaction_id, created_at
     """)
 
@@ -37,7 +37,7 @@ def log_transaction(req: TransactionCreate, db: Session = Depends(get_db)):
     row = db.execute(sql, {
         "id": new_id,
         "uid": req.user_id,
-        "jid": req.journey_id,
+        "tid": req.ticket_id,
         "amt": final_amount,
         "type": req.type,
         "desc": req.description
@@ -48,7 +48,7 @@ def log_transaction(req: TransactionCreate, db: Session = Depends(get_db)):
     return TransactionResponse(
         transaction_id = new_id,
         user_id= req.user_id,
-        journey_id = req.journey_id,
+        ticket_id = req.ticket_id,
         amount=final_amount,
         type= req.type,
         description=req.description,

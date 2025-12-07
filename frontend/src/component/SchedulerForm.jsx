@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { getNextTrains, getStations, checkFare, purchaseTicket } from "../api/journey";
 import styles from "./SchedulerForm.module.css";
+import TicketHistory from "./TicketHistory";
 
 export default function SchedulerForm({ me, onLogout }) {
   const [stations, setStations] = useState([]);
@@ -12,6 +13,8 @@ export default function SchedulerForm({ me, onLogout }) {
   const [error, setError] = useState("");
   const [fare, setFare] = useState(null);
   const [ticket, setTicket] = useState(null);
+  const [ticketType, setTicketType] = useState("SINGLE");
+  const [showHistory, setShowHistory] = useState(false);
 
   useEffect(() => {
     loadStations();
@@ -89,23 +92,38 @@ export default function SchedulerForm({ me, onLogout }) {
     setTicket(null);
 
     try {
-      const res = await purchaseTicket(fromStation, toStation);
+      const res = await purchaseTicket(fromStation, toStation, ticketType);
       setTicket(res);
+
+      // Rate Limiting: Keep loading state for 5 seconds to prevent spam
+      // This disables the button
+      setTimeout(() => {
+        setLoadingPurchase(false);
+      }, 5000);
+
     } catch (err) {
       console.error("Purchase error:", err);
       setError(err.message || "Purchase failed");
-    } finally {
       setLoadingPurchase(false);
     }
   }
 
   const finalFare = useMemo(() => {
-    if (fare === null) return null;
+    let base = fare;
+
+    // Fixed prices for passes
+    if (ticketType === "DAY") base = 40000;
+    else if (ticketType === "MONTH") base = 200000;
+    else if (ticketType === "RETURN") base = fare ? fare * 2 : 0;
+    else base = fare; // SINGLE
+
+    if (base === null) return null;
+
     const type = me?.passenger_type || "STANDARD";
-    if (type === "STUDENT") return fare * 0.5;
+    if (type === "STUDENT") return base * 0.5;
     if (type === "ELDERLY") return 0;
-    return fare;
-  }, [fare, me]);
+    return base;
+  }, [fare, me, ticketType]);
 
   const balanceFmt = useMemo(() => {
     return new Intl.NumberFormat('vi-VN').format(me?.balance || 0);
@@ -126,6 +144,7 @@ export default function SchedulerForm({ me, onLogout }) {
                 {me.passenger_type}
               </div>
             )}
+            <button className={styles.logoutBtn} onClick={() => setShowHistory(true)} style={{ marginRight: '10px', background: '#2196F3' }}>My Tickets</button>
             <button className={styles.logoutBtn} onClick={onLogout}>Logout</button>
           </div>
         </div>
@@ -190,11 +209,31 @@ export default function SchedulerForm({ me, onLogout }) {
             </select>
           </div>
 
+          <div className={styles.formGroup}>
+            <label className={styles.label}>Ticket Type</label>
+            <select
+              className={styles.select}
+              value={ticketType}
+              onChange={(e) => setTicketType(e.target.value)}
+            >
+              <option value="SINGLE">Single Trip</option>
+              <option value="RETURN">Return Trip</option>
+              <option value="DAY">Day Pass (40k)</option>
+              <option value="MONTH">Monthly Pass (200k)</option>
+            </select>
+          </div>
+
           {fare !== null && (
             <div className={styles.fareDisplay}>
               <div className={styles.fareRow}>
-                <span>Standard Fare:</span>
-                <span>{new Intl.NumberFormat('vi-VN').format(fare)} VND</span>
+                <span>Base Price:</span>
+                <span>
+                  {new Intl.NumberFormat('vi-VN').format(
+                    (ticketType === "DAY") ? 40000 :
+                      (ticketType === "MONTH") ? 200000 :
+                        (ticketType === "RETURN") ? (fare * 2) : fare
+                  )} VND
+                </span>
               </div>
               {me?.passenger_type && me.passenger_type !== "STANDARD" && (
                 <div className={`${styles.fareRow} ${styles.discountRow} `}>
@@ -228,6 +267,7 @@ export default function SchedulerForm({ me, onLogout }) {
           )}
         </div>
       </div>
+      {showHistory && <TicketHistory onClose={() => setShowHistory(false)} />}
     </div>
   );
 }
