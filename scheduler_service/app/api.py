@@ -10,15 +10,31 @@ from scheduler_service.app.schemas import (
     InternalFareRequest, InternalFareResponse,
     StationScheduleResponse, NextTrainInfo
 )
+from scheduler_service.app.cache import get_cache, set_cache
 
 router = APIRouter()
 @router.get("/lines", response_model=list[MetroLine])
 def get_lines(db: Session = Depends(get_db)):
+    # 1. Check Cache
+    cached = get_cache("SCHEDULER:LINES")
+    if cached:
+        return cached
+
     result = db.execute(text("SELECT * FROM metro_lines ORDER BY line_id"))
-    return result.mappings().all()
+    data = result.mappings().all()
+
+    # 2. Save Cache
+    set_cache("SCHEDULER:LINES", [dict(r) for r in data], 86400)
+    return data
 
 @router.get("/stations", response_model = list[Station])
 def get_stations(line_id: str | None = None, db: Session = Depends(get_db)):
+    cache_key = f"SCHEDULER:STATIONS:{line_id or 'ALL'}"
+    
+    # Check Cache
+    cached = get_cache(cache_key)
+    if cached:
+        return cached
 
     if line_id:
         sql = text(
@@ -34,7 +50,10 @@ def get_stations(line_id: str | None = None, db: Session = Depends(get_db)):
         sql = text("SELECT * FROM stations WHERE is_active = true ORDER BY station_id")
         result = db.execute(sql)
 
-    return result.mappings().all()
+    data = result.mappings().all()
+    # Save Cache
+    set_cache(cache_key, [dict(r) for r in data], 86400)
+    return data
 
 def _calculate_fare_logic(db: Session, from_station: str, to_station: str) -> dict:
 
@@ -56,8 +75,19 @@ def _calculate_fare_logic(db: Session, from_station: str, to_station: str) -> di
         raise HTTPException(404, "Can not found line between 2 stations")
     
     distance = float(row["distance"])
+    
+    rule = None
+    # Check cache for fare rules
+    cached_rules = get_cache("SCHEDULER:FARE_RULES")
+    if cached_rules:
+        rule = cached_rules
+    else:
+        # Cache Miss
+        rule_row = db.execute(text("SELECT * FROM fare_rules LIMIT 1")).mappings().first()
+        if rule_row:
+            rule = dict(rule_row)
+            set_cache("SCHEDULER:FARE_RULES", rule, 3600)
 
-    rule = db.execute(text("SELECT * FROM fare_rules LIMIT 1")).mappings().first()
     if not rule:
         base_fare = 12000
         price_per_km = 2000
