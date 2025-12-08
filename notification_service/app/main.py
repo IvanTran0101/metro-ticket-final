@@ -6,7 +6,6 @@ from fastapi import FastAPI
 logger = logging.getLogger("notification_service")
 logger.setLevel(logging.INFO)
 
-# Reuse uvicorn handlers when available, otherwise fall back to stdout.
 uvicorn_logger = logging.getLogger("uvicorn.error")
 if uvicorn_logger.handlers:
     for handler in uvicorn_logger.handlers:

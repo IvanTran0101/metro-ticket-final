@@ -15,7 +15,6 @@ def send_receipt(req: SendReceiptRequest):
         return {"ok": True, "message": "Email queued"}
     except Exception as e:
         print(f"Email error: {e}")
-        # Không raise lỗi 500 để tránh block luồng chính của Journey Service
         return {"ok": False, "message": str(e)}
 
 def _send_email_receipt(req: SendReceiptRequest):

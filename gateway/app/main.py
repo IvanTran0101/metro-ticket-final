@@ -96,7 +96,6 @@ async def _proxy(request: Request, base_url: str, tail: str, *, require_auth: bo
     global _client
     assert _client is not None
 
-    # Allow unauthenticated access to service docs/openapi endpoints
     normalized_tail = (tail or "").lstrip("/")
     is_docs = (
         request.method.upper() == "GET"
@@ -112,7 +111,6 @@ async def _proxy(request: Request, base_url: str, tail: str, *, require_auth: bo
     x_user_email = None
     if require_auth and not is_docs:
         x_user_id = await _require_user(request)
-        # Extract email from token for downstream services
         auth = request.headers.get("authorization") or ""
         if auth.lower().startswith("bearer "):
             token = auth.split(" ", 1)[1].strip()
@@ -124,16 +122,15 @@ async def _proxy(request: Request, base_url: str, tail: str, *, require_auth: bo
 
     cid = request.headers.get("correlation-id") or str(uuid.uuid4())
 
-    # Build outgoing headers
+
     upstream_url = f"{base_url}/{normalized_tail}"
-    headers = _filtered_headers(request.headers.items()) # Assuming _filter_headers was a typo and _filtered_headers is intended
+    headers = _filtered_headers(request.headers.items()) 
     headers["correlation-id"] = cid
     if x_user_id:
         headers["X-User-Id"] = x_user_id
     if x_user_email:
         headers["X-User-Email"] = x_user_email
 
-    # Forward request
     try:
         body_bytes = await request.body()
         resp = await _client.request(
@@ -147,7 +144,6 @@ async def _proxy(request: Request, base_url: str, tail: str, *, require_auth: bo
     except httpx.RequestError:
         raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail="Upstream unavailable")
 
-    # Build response, filter hop-by-hop headers
     resp_headers = {k: v for k, v in resp.headers.items() if k.lower() not in HOP_BY_HOP_HEADERS}
     return Response(content=resp.content, status_code=resp.status_code, headers=resp_headers, media_type=resp.headers.get("content-type"))
 
@@ -157,13 +153,9 @@ async def health() -> Dict[str, str]:
     return {"status": "ok"}
 
 
-# ---- Explicit reverse-proxy endpoints (as requested) ----
+# ---- Explicit reverse-proxy endpoints ----
 
 
-
-# ... (Phần đầu giữ nguyên)
-
-# ---- CẬP NHẬT CÁC ROUTE MỚI ----
 
 # 1. Scheduler (Hạ tầng & Giá)
 @app.get("/scheduler/stations")
@@ -195,7 +187,7 @@ async def journey_history(request: Request) -> Response:
 async def get_tickets(request: Request) -> Response:
     return await _proxy(request, JOURNEY_URL, "tickets", require_auth=True)
 
-# 3. Gate Simulator (Cổng soát vé)
+# Gate Simulator
 @app.post("/booking/gate/check-in")
 async def gate_check_in(request: Request) -> Response:
     return await _proxy(request, JOURNEY_URL, "gate/check-in", require_auth=False)
@@ -213,7 +205,7 @@ async def pay_penalty(request: Request) -> Response:
 async def get_transactions(request: Request) -> Response:
     return await _proxy(request, PAYMENT_URL, "transactions", require_auth=True)
 
-@app.get("/account/me") # Lưu ý URL ngắn gọn hơn
+@app.get("/account/me") 
 async def account_me(request: Request) -> Response:
     return await _proxy(request, ACCOUNT_URL, "internal/get/account/me", require_auth=True)
 

@@ -9,7 +9,6 @@ from sqlalchemy.orm import Session, sessionmaker
 from scheduler_service.app.settings import settings
 
 
-# Create SQLAlchemy engine
 engine = create_engine(
     settings.SCHEDULER_DATABASE_URL,
     pool_pre_ping=True,
@@ -18,7 +17,6 @@ engine = create_engine(
     future=True,
 )
 
-# Session factory
 SessionLocal = sessionmaker(
     bind=engine,
     autocommit=False,
@@ -29,7 +27,6 @@ SessionLocal = sessionmaker(
 
 
 def get_db() -> Generator[Session, None, None]:
-    """FastAPI dependency: yields a database session and ensures close()."""
     db = SessionLocal()
     try:
         yield db
@@ -39,7 +36,6 @@ def get_db() -> Generator[Session, None, None]:
 
 @contextmanager
 def session_scope() -> Generator[Session, None, None]:
-    """Context manager for scripts/workers."""
     db = SessionLocal()
     try:
         yield db
